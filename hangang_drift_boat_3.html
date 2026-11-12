@@ -1,0 +1,1992 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>
+<title>한강 표류선</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gowun+Dodum&family=Song+Myung&display=swap">
+<style>
+/* Layout: 수치 바 / [장면 | 선택 패널] 한 화면. 좁으면 세로로 쌓는다. 단일 다크 테마(해 질 녘 한강). */
+:root{
+  --void:#0a0b1f; --panel:#141537; --panel-2:#1c1e4a; --line:#2f3175; --line-2:#474a9a;
+  --ink:#efe9f6; --mute:#a9a3cb; --ember:#f2a65a; --rose:#d9708a;
+  --cost:#f08a8a; --gain:#92dba6; --risk:#8fc0f4; --lock:#c5abf7;
+  --f-title:'Song Myung','Nanum Myeongjo',serif;
+  --f-display:'Do Hyeon','Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  --f-body:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--void);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px}
+button{font:inherit;color:inherit}
+button:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+#app{max-width:1500px;margin:0 auto;height:100%;display:flex;flex-direction:column;gap:8px}
+/* HUD */
+#hud{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch;flex:none}
+.day{display:flex;flex-direction:column;justify-content:center;padding:2px 10px 2px 2px}
+.day b{font-family:var(--f-display);font-weight:400;font-size:26px;line-height:1;color:var(--ember)}
+.day span{font-size:12px;color:var(--mute)}
+.badge{display:flex;flex-direction:column;gap:1px;padding:4px 10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;min-width:0}
+.badge .l{font-size:11px;color:var(--mute)}
+.badge .v{font-family:var(--f-display);font-size:17px;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap}
+.badge .v small{font-size:12px;color:var(--mute);font-family:var(--f-body)}
+.good{color:var(--gain)} .warn{color:var(--ember)} .bad{color:var(--cost)} .info{color:var(--risk)}
+.badge.flash{animation:flash .9s ease 1}
+@keyframes flash{30%{border-color:var(--ember);background:#2a2350}}
+.hud-btns{margin-left:auto;display:flex;gap:6px;align-items:stretch}
+.hbtn{background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 12px;cursor:pointer;color:var(--mute)}
+.hbtn:hover{border-color:var(--ember);color:var(--ink)}
+/* Main */
+#main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,420px);gap:10px}
+#stagewrap{min-height:0;min-width:0;container-type:size;display:flex;align-items:flex-start;justify-content:center}
+#stage{position:relative;width:min(100cqw,177.78cqh);aspect-ratio:16/9;background:#05050f;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#cv{display:block;width:100%;height:100%;object-fit:contain}
+#where{position:absolute;left:10px;top:10px;font-family:var(--f-display);font-size:15px;background:rgba(10,11,31,.72);padding:2px 10px;border-radius:4px}
+#goal{position:absolute;right:10px;top:10px;font-size:12px;background:rgba(10,11,31,.78);padding:3px 10px;border-radius:4px;font-variant-numeric:tabular-nums}
+#panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;overflow-y:auto}
+@media (max-width:980px){
+  #app{height:auto}
+  #main{display:flex;flex-direction:column}
+  #stagewrap{container-type:normal;display:block}
+  #stage{width:100%}
+  #panel{overflow:visible}
+}
+.ph{display:flex;justify-content:space-between;gap:4px 8px;align-items:baseline;flex-wrap:wrap}
+.ph h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:22px;text-wrap:balance}
+.ph .sub{font-size:12px;color:var(--mute)}
+.radio{font-size:13px;color:var(--mute);border-left:2px solid var(--line-2);padding-left:10px}
+.txt p{margin:0 0 4px}
+.tip{font-size:13px;background:#1a2a3a;border:1px solid #2e5470;border-radius:6px;padding:8px 10px;color:#cfe6f7}
+.tip b{color:var(--risk);font-weight:400;font-family:var(--f-display);margin-right:6px}
+.lines{display:flex;flex-direction:column;gap:3px;margin:0;padding:0;list-style:none}
+.lines li{padding-left:16px;position:relative}
+.lines li::before{content:"·";position:absolute;left:4px;color:var(--mute)}
+.lines li.bad::before{content:"▼";font-size:9px;top:4px;color:var(--cost)}
+.lines li.good::before{content:"▲";font-size:9px;top:4px;color:var(--gain)}
+.lines li.near::before{content:"◆";font-size:9px;top:4px;color:var(--ember)}
+.lines li.bad{color:#f5cccc} .lines li.good{color:#d2efda} .lines li.near{color:#f7dcb8}
+.choices{display:flex;flex-direction:column;gap:8px}
+.choice{display:grid;grid-template-columns:40px 1fr;text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;overflow:hidden;padding:0;cursor:pointer;width:100%}
+.choice:hover:not(:disabled){border-color:var(--ember)}
+.choice.sel{border-color:var(--ember);background:#272a5e}
+.choice:disabled{cursor:not-allowed;opacity:.55}
+.choice .k{display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:20px;color:var(--ember);background:#17183f}
+.choice .b{padding:8px 12px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.choice .t{font-family:var(--f-display);font-size:17px;line-height:1.25}
+.choice .d{font-size:13px;color:var(--mute)}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:12px;padding:0 7px;border:1px solid currentColor;border-radius:999px;line-height:1.6;white-space:nowrap}
+.t-cost{color:var(--cost)} .t-gain{color:var(--gain)} .t-risk{color:var(--risk)} .t-lock{color:var(--lock)} .t-mute{color:var(--mute)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{background:var(--ember);color:#1a1020;border:0;border-radius:6px;padding:8px 18px;font-family:var(--f-display);font-size:18px;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:var(--panel-2);color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hint{font-size:12px;color:var(--mute)}
+.crew-list{display:flex;flex-direction:column;gap:6px}
+.crew-row{display:flex;flex-direction:column;gap:5px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.who{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;min-width:0}
+.who b{font-family:var(--f-display);font-weight:400;font-size:16px}
+.who span{font-size:12px;color:var(--mute)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:0}
+.seg{display:flex;flex-wrap:wrap;gap:3px}
+.seg button{background:#121335;border:1px solid var(--line);border-radius:5px;padding:3px 8px;font-size:13px;cursor:pointer}
+.seg button.on{background:var(--ember);color:#1a1020;border-color:var(--ember)}
+.seg button:disabled{opacity:.3;cursor:not-allowed}
+.mini{display:inline-flex;gap:4px;flex-wrap:wrap}
+.opt{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.opt .n{font-family:var(--f-display);font-size:16px}
+.step{display:inline-flex;align-items:center;gap:6px}
+.step button{width:30px;height:28px;background:#121335;border:1px solid var(--line);border-radius:5px;cursor:pointer}
+.step b{min-width:26px;text-align:center;font-variant-numeric:tabular-nums}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(5,5,18,.78);display:flex;align-items:center;justify-content:center;z-index:20;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.box{background:var(--panel);border:1px solid var(--line-2);border-radius:10px;max-width:760px;width:100%;max-height:100%;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.box h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:24px}
+.box .x{align-self:flex-end}
+.bar{height:6px;background:#0e0f2a;border-radius:3px;position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--gain)}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+.tbl th{color:var(--mute);font-weight:400}
+.tblwrap{overflow-x:auto}
+.end-name{font-family:var(--f-title);font-size:44px;line-height:1.05;color:var(--ink)}
+
+.btn.ghost.danger{border-color:rgba(232,110,90,.55);color:#f0a090} .btn.ghost.danger:hover{background:rgba(232,110,90,.14)} .btn.danger:not(.ghost){background:#c4553f;color:#fff}
+.confirm{border:1px solid rgba(232,110,90,.45);background:rgba(232,110,90,.08);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+#chart{display:block;width:100%;height:auto;aspect-ratio:3/1;background:#121019;border-radius:8px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--mute);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+/* portraits & roster */
+.av{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;border:2px solid;flex:none;font-family:var(--f-display);font-size:13px;color:#140c10;vertical-align:middle}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+#roster{position:absolute;left:0;right:0;bottom:0;display:flex;gap:2px;justify-content:center;flex-wrap:wrap;padding:20px 8px 6px;background:linear-gradient(0deg,rgba(4,4,8,.88),rgba(4,4,8,0))}
+.rm{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;padding:0 3px;min-width:44px}
+.rm:hover .av{border-color:var(--ember)!important}
+.rn{font-size:11px;line-height:1.2;color:var(--ink)} .rr{font-size:10px;color:var(--ember);line-height:1.2}
+body.lobby #roster{display:none}
+.who{align-items:center}
+.spk{display:flex;gap:14px;flex-wrap:wrap}
+.spk span.nm{display:flex;flex-direction:column;justify-content:center;font-family:var(--f-display);font-size:16px}
+.spk .one{display:flex;gap:8px;align-items:center}
+.slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.slot{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.slot-h{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.sbtn{font-size:13px!important;padding:3px 10px!important;cursor:pointer;display:inline-block}
+.ptxt{width:100%;min-height:80px;font-size:12px;background:#0e0f2a;color:var(--ink);border:1px solid var(--line);border-radius:4px}
+.slot-g{margin:6px 0 0;font-family:var(--f-display);font-weight:400;font-size:18px;color:var(--ember)}
+/* Lobby */
+body.lobby #hud, body.lobby #panel{display:none}
+body.lobby #main{display:block}
+body.lobby #stage{position:fixed;inset:0;width:auto;aspect-ratio:auto;border:0;border-radius:0;z-index:1}
+body.lobby #cv{object-fit:cover}
+body.lobby #where, body.lobby #goal{display:none}
+#lobby{position:fixed;inset:0;z-index:5;display:flex;align-items:flex-end;
+  background:linear-gradient(90deg,rgba(8,8,26,.94) 0%,rgba(8,8,26,.82) 34%,rgba(8,8,26,.25) 62%,rgba(8,8,26,0) 80%);
+  padding:max(20px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));overflow-y:auto}
+.lobby-in{max-width:560px;width:100%;padding:0 0 4vh 3vw;display:flex;flex-direction:column;gap:14px}
+.kicker{margin:0;font-size:13px;letter-spacing:.18em;color:var(--ember)}
+.ttl{margin:0;font-family:var(--f-title);font-weight:400;font-size:clamp(56px,9vw,104px);line-height:.92;letter-spacing:-.01em;color:var(--ink);text-shadow:0 4px 30px rgba(0,0,0,.5)}
+.ttl span{display:block;padding-left:.9em;color:#f6d7b0}
+.lede{margin:0;color:#d6d0e8;max-width:30em}
+.menu{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.menu button{background:none;border:0;text-align:left;font-family:var(--f-display);font-size:24px;padding:4px 0 4px 0;cursor:pointer;color:var(--ink);display:flex;align-items:center;gap:10px}
+.menu button::before{content:"";display:inline-block;width:0;height:2px;background:var(--ember);transition:width .2s}
+.menu button:hover::before,.menu button:focus-visible::before{width:22px}
+.menu button small{font-family:var(--f-body);font-size:13px;color:var(--mute)}
+.menu button:disabled{opacity:.35;cursor:default}
+.ticker{margin:0;font-size:13px;color:var(--mute);min-height:1.6em}
+.sheet{max-width:760px;width:100%;padding:0 0 3vh 3vw;display:flex;flex-direction:column;gap:14px}
+.sheet h2{margin:0;font-family:var(--f-title);font-weight:400;font-size:44px;line-height:1}
+.sheet h4{margin:0;font-family:var(--f-display);font-weight:400;font-size:18px;color:var(--ember)}
+.picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.pk{text-align:left;background:rgba(24,26,66,.96);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.pk:hover:not(:disabled){border-color:var(--ember)}
+.pk.on{border-color:var(--ember);background:rgba(54,44,90,.95)}
+.pk:disabled{cursor:not-allowed;opacity:.8}
+.pk:disabled b,.pk:disabled span:not(.lockline){color:#77739a}
+.pk b{font-family:var(--f-display);font-weight:400;font-size:19px}
+.pk span{font-size:13px;color:var(--mute)}
+.pk em{font-style:normal;font-size:12px;color:var(--risk)}
+.pk .lockline{font-size:12px;color:var(--lock)}
+@media (max-width:700px){
+  #lobby{background:linear-gradient(0deg,rgba(8,8,26,.96) 0%,rgba(8,8,26,.85) 55%,rgba(8,8,26,.2) 85%)}
+  .lobby-in,.sheet{padding:0}
+  .day b{font-size:22px} .badge{padding:3px 7px} .badge .v{font-size:15px}
+  .hud-btns{margin-left:0;width:100%} .hud-btns .hbtn{flex:1}
+  #goal{font-size:10px;padding:1px 6px;top:5px;right:5px}
+  #where{font-size:12px;left:5px;top:5px;padding:1px 6px}
+  body:not(.lobby) #stage{aspect-ratio:auto} body:not(.lobby) #cv{height:auto;aspect-ratio:16/9}
+  #roster{position:static;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:6px 4px;background:#0a0910;border-top:1px solid var(--line)}
+  #roster .av{width:34px!important;height:34px!important;font-size:10px} #roster .rn{font-size:10px} #roster .rr{white-space:nowrap;font-size:9.5px} #roster .rm{min-width:48px}
+  .sheet h2{font-size:34px}
+}
+@media (prefers-reduced-motion:reduce){ .badge.flash{animation:none} .menu button::before{transition:none} }
+</style>
+
+<div id="app">
+  <header id="hud" aria-live="polite"></header>
+  <div id="main">
+    <div id="stagewrap"><div id="stage">
+      <canvas id="cv" width="1152" height="648" aria-label="새벽호와 폐허가 된 한강변 풍경"></canvas>
+      <div id="where"></div>
+      <div id="roster" aria-label="생존자"></div>
+      <div id="goal"></div>
+    </div></div>
+    <section id="panel" aria-live="polite"></section>
+  </div>
+</div>
+<div id="lobby" hidden></div>
+<div id="modal" class="ov" hidden></div>
+
+<script>
+(() => {
+'use strict';
+let HEADLESS = false;
+const $ = s => document.querySelector(s);
+window.__HGP_S = () => S;
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const rnd = () => Math.random();
+const chance = p => rnd() < p;
+const ri = (a,b) => a + Math.floor(rnd()*(b-a+1));
+const pick = arr => arr[Math.floor(rnd()*arr.length)];
+const clone = o => JSON.parse(JSON.stringify(o));
+function jo(w, a, b){ const c = w.charCodeAt(w.length-1); if(c<0xAC00||c>0xD7A3) return w+a; return w + (((c-0xAC00)%28) ? a : b); }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============================ DATA ============================ */
+const LOCS = [
+  {id:'jamsil', name:'잠실 선착장', short:'잠실', loot:{water:6, parts:1}, zone:null, bridge:true},
+  {id:'ttuk', name:'뚝섬 유원지', short:'뚝섬', loot:{water:14, parts:2}, zone:'park', wheel:true},
+  {id:'banpo', name:'반포 한강공원', short:'반포', loot:{water:6, parts:3, meds:1}, zone:null, bridge:true},
+  {id:'yeoui', name:'여의나루 마리나', short:'여의나루', loot:{fuel:10, parts:1}, tool:'radio', zone:'park', yachts:true},
+  {id:'mang', name:'망원 한강공원', short:'망원', loot:{water:4}, zone:'vigil', barricade:true},
+  {id:'nanji', name:'난지 캠핑장', short:'난지', loot:{fuel:6, parts:3}, tool:'hook', zone:null, tents:true},
+  {id:'haeng', name:'행주대교 하류', short:'행주', loot:null, zone:'salt', bridge:true, crowd:true}
+];
+const LEGS = [6,8,8,6,6,10];
+const WEATHER = {
+  monsoon:['clear','clear','cloudrain','rain','algae','clear','fog'],
+  drought:['clear','clear','cloud','clear','algae','clear','fog'],
+  cold:['clear','cloud','clear','fog','clear','cloud','fog']
+};
+const WX = {
+  clear:{n:'맑음', mult:1}, cloud:{n:'흐림', mult:1, grey:true},
+  cloudrain:{n:'흐림 → 비', mult:.5, rain:true, grey:true}, rain:{n:'비', mult:.5, rain:true, grey:true},
+  fog:{n:'안개', mult:.5, fog:true, grey:true}, algae:{n:'흐림 · 녹조', mult:1, algae:true, grey:true}
+};
+const SEASONS = {
+  monsoon:{n:'장마', d:'비가 잦고 수위가 높다. 빗물은 많지만 다리 밑에서 선체가 깎인다.'},
+  drought:{n:'가뭄', d:'비가 오지 않는다. 얕은 여울에서 좌초할 수 있다. 교역과 필터가 생명줄.'},
+  cold:{n:'한파', d:'강가가 얼어 좀비가 얼음 위로 건너온다. 습격 +15%p, 밤마다 난방 연료 2L (시작 연료 +6L).'}
+};
+const ERAS = {
+  early:{n:'초기', s:'감염 9일째', loot:1, z:1},
+  mid:{n:'중기', s:'3개월 후', loot:.7, z:.8},
+  late:{n:'후기', s:'1년 후', loot:.4, z:.5}
+};
+const DIFFS = {
+  story:{n:'이야기', rew:99, crisis:true, d:'되감기 무제한'},
+  normal:{n:'표준', rew:2, crisis:true, d:'되감기 2회'},
+  survival:{n:'생존', rew:0, crisis:false, d:'되감기·위기 보정 없음 · 시작 식수 24 · 습격 +10%p'}
+};
+const RADIO = [
+  '“7일 뒤 새벽 4시, 행주대교 하류. 구조 함대가 마지막으로 생존자를 태운다.”',
+  '“하류 쪽 감염자 밀도가 낮아지고 있다. 다리 아래를 조심하라.”',
+  '“비 예보. 수위가 오른다. 낮은 다리 아래는 천천히 지나라.”',
+  '“여의도 일대 연료 저장소 확인. 감염자 다수.”',
+  '“망원 지역 민간 자경단이 교신을 요청 중.”',
+  '“함대는 예정대로 움직인다. 내일 새벽 4시.”',
+  '“오늘 새벽 4시, 함대는 한 번만 기다린다.”'
+];
+const CREW0 = [
+  {id:'tae', name:'강태오', age:44, hp:85, trust:70, skill:'기관사', note:'기관·조타에 있으면 구간 연료 -2L'},
+  {id:'so', name:'한소율', age:31, hp:80, trust:65, skill:'약사', note:'약품 효과 +10'},
+  {id:'du', name:'박두석', age:63, hp:60, trust:55, skill:'어부', note:'기관·조타에 있으면 안개 이탈 0%, 다리 충돌 절반', tool:'rod'},
+  {id:'ga', name:'윤가람', age:19, hp:85, trust:60, skill:'수영 선수', note:'상륙 보급 +20%'},
+  {id:'min', name:'최민규', age:38, hp:90, trust:40, skill:'경호원', note:'경계 시 좀비 3마리를 막음'},
+  {id:'se', name:'오세진', age:27, hp:75, trust:50, skill:'영상 크리에이터', note:'드론 정찰로 상륙 위험을 미리 봄', tool:'binoc'},
+  {id:'myeong', name:'서명자', age:70, hp:55, trust:75, skill:'매점 주인', note:'배급제 신뢰 하락 절반'},
+  {id:'ha', name:'이하준', age:9, hp:90, trust:80, skill:'아이', note:'역할 배치 불가', child:true}
+];
+const JOIN = {
+  woo:{id:'woo', name:'정우현', age:41, hp:80, trust:35, skill:'회사원', note:'김나래의 남편. 아들을 두고 왔다'},
+  nae:{id:'nae', name:'김나래', age:39, hp:80, trust:40, skill:'교사', note:'정우현의 아내'},
+  yu:{id:'yu', name:'최유나', age:33, hp:80, trust:70, skill:'간호조무사', note:'휴식 회복 +5'},
+  sea:{id:'sea', name:'최서아', age:5, hp:85, trust:85, skill:'아이', note:'최유나의 딸', child:true},
+  rin:{id:'rin', name:'문하린', age:29, hp:70, trust:60, skill:'임신 8개월', note:'식수 1.5배, 상륙·경계 불가', pregnant:true},
+  baby:{id:'baby', name:'새벽', age:0, hp:90, trust:90, skill:'신생아', note:'밤마다 접근도 +5', child:true, baby:true}
+};
+const DEF_ROLE = {tae:'engine', du:'engine', so:'water', se:'water', ga:'land', min:'guard', myeong:'rest', ha:'rest', woo:'guard', nae:'land', yu:'rest', sea:'rest', rin:'rest', baby:'rest'};
+const TOOLS = {binoc:'쌍안경', rod:'낚싯대', radio:'무전기', hook:'갈고리 장대', pill:'정수 알약', memento:'유품'};
+const ROLES = [{id:'land', n:'상륙조'},{id:'guard', n:'경계'},{id:'engine', n:'기관·조타'},{id:'water', n:'물 관리'},{id:'rest', n:'휴식'}];
+const UPG = [
+  {id:'rain', n:'빗물 받이', cost:2, d:'비 오는 날 빗물 +6 → +12'},
+  {id:'boat', n:'구명보트 수리', cost:2, d:'배를 대지 않고 상륙 (접근도 +10 면제)'},
+  {id:'fence', n:'철망 펜스', cost:3, d:'습격·매달림 피해 -30%'},
+  {id:'engine2', n:'보조 엔진 정비', cost:5, d:'구간 연료 -2L'},
+  {id:'search', n:'서치라이트', cost:2, d:'안개 항로 이탈 0%'},
+  {id:'repair', n:'선체 수리', cost:2, d:'선체 +15 (반복 가능)', repeat:true}
+];
+const LEN = {short:{n:'짧게', ap:10, m:.55}, normal:{n:'보통', ap:20, m:1}, long:{n:'길게', ap:35, m:1.4}};
+const ENDINGS = {
+  dawn:{n:'새벽 엔딩', d:'모두가 함께 새벽을 맞았다. 서로를 믿은 배는 끝까지 한 척이었다.'},
+  fleet:{n:'함대 합류 엔딩', d:'새벽호는 함대에 닿았다. 잃은 사람도, 지켜낸 사람도 함께 실려 간다.'},
+  drift:{n:'표류 엔딩', d:'함대의 불빛은 안개 너머로 멀어졌다. 새벽호는 서해 쪽으로 천천히 떠내려간다.'},
+  sink:{n:'침몰', d:'새벽호는 한강 한가운데에서 멈췄다.'}
+};
+
+/* ============================ META ============================ */
+const META_KEY = 'hgp_meta_v1', SAVE_KEY = 'hgp_save_v1';
+let META = Object.assign({seasons:['monsoon'], eras:['early'], endings:{}, driftBonus:false}, LS.get(META_KEY, {}));
+const saveMeta = () => LS.set(META_KEY, META);
+
+/* ============================ STATE ============================ */
+let S = null, snaps = [];
+let opts = {season:'monsoon', era:'early', diff:'normal'}, resetArm = false;
+
+function mk(c){
+  return Object.assign({}, c, {alive:true, left:false, role:DEF_ROLE[c.id]||'rest', bitten:null, revealed:false, sick:false,
+    quar:false, watch:false, away:false, xp:0, lv:1, tool:c.tool||null, medToday:false, pregnant:!!c.pregnant});
+}
+function newGame(o){
+  S = {
+    v:1, season:o.season, era:o.era, diff:o.diff, day:1, phase:'morning', loc:0, wx:'clear',
+    water:o.diff === 'survival' ? 24 : 30, fuel:30 + (META.driftBonus ? 5 : 0) + (o.season === 'cold' ? 6 : 0), food:70, parts:2, meds:3, hull:100, flare:1,
+    approach:15, docked:true, nightsHere:1,
+    up:{rain:false, boat:false, fence:false, filter:false, engine2:false, search:false},
+    rationing:false, lights:false, anchor:false, boil:0,
+    crew: CREW0.map(mk), rel:{'se|so':50, 'nae|woo':90},
+    used:{}, log:[], hist:[], evId:null, evTarget:null, evTitle:'', lines:[], pre:[],
+    f:{lastDeath:false, lastAttack:false, attackStreak:0, crisis:false, lastChance:false, married:null,
+       landedToday:false, forcedStay:false, movedLegs:0, rewinds:DIFFS[o.diff].rew, deaths:0, born:false,
+       birthDay:ri(3,6), soAway:false, theftAgain:false, watched:null, tools:{}, final:null},
+    ending:null
+  };
+  if(META.driftBonus){ META.driftBonus = false; saveMeta(); }
+  if(o.era !== 'early') S.crew.push(mk(JOIN.rin));
+  S.tut = !META.played;
+  S.hist.push(Object.assign(histRow('출발'), {d:0}));
+  snaps = [];
+  startDay();
+}
+
+/* ============================ HELPERS ============================ */
+const alive = () => S.crew.filter(c => c.alive && !c.left);
+const onboard = () => alive().filter(c => !c.away);
+const adults = () => alive().filter(c => !c.child);
+const byId = id => S.crew.find(c => c.id === id);
+const has = id => { const c = byId(id); return !!(c && c.alive && !c.left && !c.away); };
+const avgTrust = () => { const a = alive(); return a.length ? Math.round(a.reduce((s,c)=>s+c.trust,0)/a.length) : 0; };
+const bonded = () => avgTrust() >= 70;
+const headcount = () => alive().length;
+const waterDays = () => { const n = headcount(); return n ? S.water / n : 0; };
+const wx = () => WX[S.wx] || WX.clear;
+function consumption(){ let n = 0; alive().forEach(c => n += c.pregnant ? 1.5 : 1); if(S.rationing) n *= .8; return Math.round(n); }
+function addTrust(n, o){ o = o||{}; alive().forEach(c => { if(o.except && o.except.includes(c.id)) return; c.trust = clamp(c.trust + n, 0, 100); }); }
+function tr(id, n){ const c = byId(id); if(c && c.alive && !c.left) c.trust = clamp(c.trust + n, 0, 100); }
+function addAp(n){ const v = Math.round(n * wx().mult); S.approach = Math.max(0, S.approach + v); return v; }
+function hasTool(t){ return alive().some(c => c.tool === t && !c.away); }
+function useTool(t){ const c = alive().find(c => c.tool === t); if(c) c.tool = null; return c; }
+function giveTool(t, prefer){
+  const pool = adults().filter(c => !c.away);
+  let c = (prefer||[]).map(byId).find(x => x && x.alive && !x.left && !x.tool) || pool.find(x => !x.tool) || pool[0];
+  if(c) c.tool = t; return c;
+}
+function join(id){ if(byId(id)) return byId(id); const c = mk(JOIN[id]); S.crew.push(c); return c; }
+function relKey(a,b){ return [a,b].sort().join('|'); }
+function rel(a,b){ return S.rel[relKey(a,b)] ?? 20; }
+function addRel(a,b,n){ const k = relKey(a,b); S.rel[k] = clamp((S.rel[k] ?? 20) + n, 0, 100); }
+function partnerOf(c){ let best = null, bv = 59; alive().forEach(o => { if(o.id===c.id) return; const v = rel(c.id,o.id); if(v > bv){ bv = v; best = o; } }); return best; }
+function engineHas(id){ const c = byId(id); return !!(c && c.alive && !c.left && !c.away && c.role === 'engine'); }
+function engineCount(){ return onboard().filter(c => c.role === 'engine' && !c.child && !c.quar).length; }
+function legCost(i){ let c = LEGS[i]; if(engineHas('tae')) c -= 2; if(S.up.engine2) c -= 2; return Math.max(3, c); }
+function fuelToGoal(){ let s = 0; for(let i = S.loc; i < 6; i++) s += legCost(i); return s; }
+function canLand(c){ return !c.child && !c.pregnant && c.hp >= 70 && !c.quar && !c.away && c.alive && !c.left; }
+function landers(){ return onboard().filter(c => c.role === 'land' && canLand(c)); }
+function hurt(c, n, biteP){
+  if(!c) return '';
+  c.hp = clamp(c.hp - n, 0, 100);
+  let s = `${c.name} 체력 -${n}`;
+  if(biteP && c.hp > 0 && c.bitten === null && !c.baby && chance(biteP)){ bite(c); }
+  return s;
+}
+function bite(c){ c.bitten = 0; c.revealed = c.trust >= 70 ? true : (c.trust >= 50 ? chance(.5) : false); }
+function kill(c, L, why){
+  if(!c || !c.alive) return;
+  c.alive = false; c.hp = 0; c.quar = false; S.f.lastDeath = true; S.f.deaths++;
+  addTrust(-5);
+  const p = partnerOf(c);
+  if(c.tool && c.tool !== 'memento'){ const t = c.tool; c.tool = null; const h = giveTool(t, p ? [p.id] : []); if(h && L) L.push(`${c.name}의 ${TOOLS[t]}${jo(TOOLS[t],'은','는')} ${h.name}에게 넘어갔다.`); }
+  const h2 = p && !p.tool ? p : adults().find(x => !x.tool);
+  if(h2){ h2.tool = 'memento'; tr(h2.id, 5); if(L) L.push(`${h2.name}${jo(h2.name,'이','가')} ${c.name}의 유품을 간직한다. (${h2.name} 신뢰 +5)`); }
+  if(L) L.push(`!${c.name} 사망. ${why||''} 전원 신뢰 -5.`);
+  logLine(`${c.name} 사망`);
+}
+function wBand(){ const d = waterDays(); if(S.water <= 0) return {k:'out', n:'고갈', c:'bad'}; if(d >= 4) return {k:'plenty', n:'여유', c:'good'}; if(d >= 2) return {k:'ok', n:'보통', c:''}; if(d >= 1) return {k:'low', n:'부족', c:'warn'}; return {k:'crit', n:'위기', c:'bad'}; }
+function fBand(f){ f = f ?? S.fuel; if(f >= 30) return {n:'충분', c:'good'}; if(f >= 15) return {n:'보통', c:''}; if(f >= 5) return {n:'부족', c:'warn'}; return {n:'고갈', c:'bad'}; }
+function tBand(t){ t = t ?? avgTrust(); if(t >= 70) return {n:'결속', c:'good'}; if(t >= 50) return {n:'안정', c:''}; if(t >= 30) return {n:'불신', c:'warn'}; return {n:'분열', c:'bad'}; }
+function aBand(a){ if(a < 20) return {n:'고요', p:.05, z:[1,2], c:'good'}; if(a < 40) return {n:'주의', p:.2, z:[3,4], c:''}; if(a < 70) return {n:'위험', p:.45, z:[5,8], c:'warn'}; return {n:'포위', p:1, z:[10,12], c:'bad'}; }
+function hpState(c){ if(c.hp >= 70) return '건강'; if(c.hp >= 40) return '부상'; return '중상'; }
+function attackP(ap){ let p = aBand(ap).p; if(S.season === 'cold') p += .15; if(S.diff === 'survival') p += .1; if(S.f.crisis) p -= .1; if(S.f.attackStreak >= 2) p -= .2; return clamp(p, 0, 1); }
+function pct(p){ return Math.round(p*100) + '%'; }
+function logLine(t){ S.log.push({d:S.day, t}); }
+function histRow(ev){ return {d:S.day, water:S.water, wd:+waterDays().toFixed(1), fuel:S.fuel, trust:avgTrust(), ap:S.approach, crew:headcount(), ev}; }
+function nightAp(){
+  let ap = S.approach; const m = wx().mult;
+  if(S.anchor) ap = Math.round(ap * (S.season === 'cold' ? .6 : .3));
+  else { if(!S.docked) ap += Math.round(10*m); else if(S.nightsHere >= 1) ap += Math.round(10*m); if(S.loc === 6) ap += 15; }
+  if(S.lights) ap += Math.round(10*m);
+  if(has('baby')) ap += 5;
+  return ap;
+}
+function guardCap(list){
+  let cap = 0;
+  list.forEach(c => { let b = c.id === 'min' ? (c.lv >= 2 ? 4 : 3) : 2; if(c.hp < 70) b = Math.max(1, Math.floor(b/2)); cap += b; });
+  if(S.f.married && list.some(c => S.f.married.includes(c.id))) cap += 1;
+  if(bonded()) cap = Math.round(cap * 1.2);
+  return cap;
+}
+function guards(){ return onboard().filter(c => c.role === 'guard' && !c.child && !c.pregnant && !c.quar && c.hp > 0); }
+function rollLine(p, r, hit, what){
+  const diff = Math.abs(r - p);
+  if(!hit && p > 0 && diff < .06) return `~${what} 판정 ${pct(p)} — ${Math.max(1, Math.round(diff*100))}% 차이로 피했다.`;
+  if(hit && p < 1 && diff < .06) return `!${what} 판정 ${pct(p)} — ${Math.max(1, Math.round(diff*100))}% 차이로 걸렸다.`;
+  return null;
+}
+/* zombies falling on deck (bridges) */
+function cling(L, p, certain){
+  if(!(certain || chance(p))) return;
+  const n = ri(1,3);
+  if(hasTool('hook')){ const h = alive().find(c => c.tool === 'hook'); L.push(`~다리 위에서 좀비 ${n}마리가 떨어졌다. ${h.name}${jo(h.name,'이','가')} 갈고리 장대로 떼어냈다.`); return; }
+  const g = guards(); const cap = guardCap(g);
+  const rest = Math.max(0, n - cap);
+  if(!rest){ L.push(`~다리 위에서 좀비 ${n}마리가 떨어졌다. 경계조가 모두 밀어냈다.`); return; }
+  const fm = S.up.fence ? .7 : 1;
+  const hits = [];
+  for(let i=0;i<rest;i++){ const v = pick(g.length ? g : onboard().filter(c=>!c.baby)); if(v) hits.push(hurt(v, Math.round(15*fm), .25)); }
+  L.push(`!다리 위에서 좀비 ${n}마리가 갑판에 떨어졌다. ${hits.join(', ')}.`);
+}
+
+/* ============================ EVENTS ============================ */
+const T = (c, t) => [c, t];
+function lowestTrust(filter){ return alive().filter(c => !c.child && (!filter || filter(c))).sort((a,b) => a.trust - b.trust)[0]; }
+function bestPair(){
+  let best = null, bv = 79;
+  for(const k in S.rel){ const [a,b] = k.split('|'); if(k === 'nae|woo') continue; const A = byId(a), B = byId(b);
+    if(!A || !B || !A.alive || !B.alive || A.left || B.left || A.child || B.child) continue;
+    if(S.rel[k] > bv){ bv = S.rel[k]; best = [A,B]; } }
+  return best;
+}
+const EV = {
+  final:{ pri:200, title:'마지막 물길', axes:'3축 동시', when:() => S.day >= 7,
+    text(){
+      const legs = 6 - S.loc;
+      if(legs === 0) return ['이미 행주대교 하류에 닿아 있다. 다리 위를 좀비 떼가 메우고 있다. 새벽 4시까지 버티면 된다.'];
+      return [`행주까지 ${legs}구간 남았다. 난지를 지나면 염분 구간이라 강물은 쓸 수 없다.`,
+        `안개 속 행주대교 위를 좀비 떼가 메우고 있다. 함대 출발 04:00.`];
+    },
+    choices(){
+      const legs = 6 - S.loc;
+      if(legs === 0){
+        return [
+          {k:'A', t:'강 한가운데 닻을 내린다', d:'다리에서 멀리 떨어져 기다린다.', tags:[T('cost','연료 -2L'),T('gain','04:00 도착 확정')], need:() => S.fuel >= 2 ? null : '연료 2L 필요',
+            run(){ S.fuel -= 2; return fin(true, '04:00', ['새벽호는 강 한가운데에서 숨을 죽이고 기다렸다.']); }},
+          {k:'B', t:'정박한 채 기다린다', d:'연료는 아끼지만 다리 위 좀비가 내려온다.', tags:[T('risk','습격 45%'),T('gain','연료 0')],
+            run(){ const L = ['새벽호는 정박한 채 밤을 넘긴다.']; if(chance(.45)){ const v = pick(guards().length ? guards() : adults()); L.push('!좀비들이 계류줄을 타고 올라왔다. ' + hurt(v, 20, .15) + '.'); } return fin(true, '04:00', L); }},
+          {k:'C', t:'갑판 조명으로 신호를 보낸다', d:'함대가 확실히 본다. 좀비도 본다.', tags:[T('risk','접근도 +20'),T('gain','신뢰 +3')],
+            run(){ addAp(20); addTrust(3); return fin(true, '03:55', ['갑판의 불빛이 안개를 밀어낸다. 모두가 그 불빛 아래 모였다.']); }}
+        ];
+      }
+      let need = 0; for(let i = S.loc; i < 6; i++) need += legCost(i);
+      const fast = need + Math.ceil(legCost(5) * .5);
+      const late = legs > 2;
+      const tFast = late ? '04:20' : '03:40', tSlow = late ? '04:50' : '04:10';
+      const fuelReason = n => S.fuel >= n ? null : `연료 ${n}L 필요 (보유 ${S.fuel}L)`;
+      const arr = [
+        {k:'A', t:'전속력으로 통과한다', d:`엔진을 최대로 돌린다. 매달림이 확정이다. 예상 도착 ${tFast}.`, tags:[T('cost',`연료 -${fast}L`),T('cost','선체 -20'),T('risk','매달림 확정')], need:() => fuelReason(fast),
+          run(){ S.fuel -= fast; S.hull -= S.up.fence ? 14 : 20; const L = []; cling(L, 1, true); return fin(!late, tFast, L); }},
+        {k:'B', t:'안개 속 저속 잠행', d:`${has('du') ? '박두석이 키를 잡는다. ' : ''}조용히 지나간다. 예상 도착 ${tSlow} — 함대 출발 뒤다.`, tags:[T('cost',`연료 -${need}L`),T('risk','매달림 20%'),T('risk',`도착 ${tSlow}`)], need:() => fuelReason(need),
+          run(){ S.fuel -= need; const L = []; if(has('du')){ L.push(hurt(byId('du'), 20) + ' (밤새 키를 잡았다).'); } cling(L, .2); return fin(false, tSlow, L); }},
+        {k:'C', t:'신호탄으로 좀비를 유인한다', d:'함대용 신호탄을 반대편 강변에 쏜다. 위치를 알릴 수단이 사라진다.', tags:[T('cost',`연료 -${need}L`),T('cost','신호탄 소모'),T('risk','합류 70%')], need:() => S.flare < 1 ? '신호탄 없음' : fuelReason(need),
+          run(){ S.fuel -= need; S.flare--; const L = ['신호탄이 반대편 강변을 붉게 물들인다. 좀비 떼가 그쪽으로 몰려간다.']; const ok = !late && chance(.7); return fin(ok, tSlow, L, ok ? '안개 속에서도 함대가 새벽호를 찾아냈다.' : null); }},
+        {k:'D', t:'저속 잠행 + 무전 대기 요청', d:'함대에 15분 대기를 요청한다. 성공률은 배의 평균 신뢰.', tags:[T('lock','무전기 · 결속 전용'),T('cost',`연료 -${need}L`),T('risk',`무전 ${avgTrust()}%`)],
+          need:() => !hasTool('radio') ? '무전기 필요' : !bonded() ? `결속(신뢰 70) 필요 — 지금 ${avgTrust()}` : fuelReason(need),
+          run(){ S.fuel -= need; const L = []; if(has('du')) L.push(hurt(byId('du'), 20) + ' (밤새 키를 잡았다).'); cling(L, .2);
+            const p = avgTrust()/100, r = rnd(), ok = r < p && !late; const rl = rollLine(p, r, !ok, '무전'); if(rl) L.push(rl);
+            L.push(ok ? '+무전이 닿았다. “15분 기다리겠다.”' : '!무전 판정 실패. 잡음뿐이다.'); return fin(ok, tSlow, L); }}
+      ];
+      if(arr.every(c => c.need && c.need())){
+        arr.push({k:'E', t:'남은 연료로 물살에 맡긴다', d:'엔진을 끄고 하류로 흘러간다. 도착 시각을 알 수 없다.', tags:[T('risk','합류 30%')],
+          run(){ S.fuel = 0; return fin(chance(.3), '??:??', ['엔진을 끄자 강물 소리만 남았다.']); }});
+      }
+      return arr;
+    }},
+  depart:{ pri:100, title:'기다리는 사람들', axes:'신뢰 × 접근도', when:() => S.day === 1,
+    text:() => ['강태오가 시동을 건다. 그때 선착장 매표소 안에서 부부가 뛰어나온다.', '“한 시간만요! 아들이 온다고 했어요!”'],
+    choices:() => [
+      {k:'A', t:'한 시간 기다린다', d:'아들까지 올지 모른다. 선착장에 좀비가 모여든다.', tags:[T('risk','접근도 +35'),T('gain','인원 +2'),T('gain','신뢰 +3'),T('risk','부상·물림 45%')],
+        run(){ addAp(35); join('woo'); join('nae'); addTrust(3); const L = ['+부부가 배에 오른다. 한 시간을 기다렸지만 아들은 오지 않았다.'];
+          if(chance(.45)){ const v = pick(guards().length ? guards() : adults()); L.push('!기다리는 동안 좀비가 선착장으로 몰려왔다. ' + hurt(v, 15, .3) + '.'); } else L.push('~좀비들이 선착장 끝까지 왔지만 출항이 조금 빨랐다.'); return L; }},
+      {k:'B', t:'지금 출항한다', d:'아무도 기다리지 않는다.', tags:[T('cost','신뢰(전체) -8'),T('gain','최민규 +5')],
+        run(){ addTrust(-8, {except:['min']}); tr('min', 5); return ['!새벽호가 선착장을 떠난다. 매표소 앞의 두 사람이 점점 작아진다.', '최민규: “현명한 판단이야.”']; }},
+      {k:'C', t:'구명보트로 부부만 태운다', d:'보트를 고쳐야 한다. 아들은 기다리지 않는다.', tags:[T('cost','부품 -2'),T('risk','접근도 +15'),T('gain','인원 +2'),T('gain','구명보트 수리')], need:() => S.parts >= 2 ? null : '부품 2 필요',
+        run(){ S.parts -= 2; S.up.boat = true; addAp(15); join('woo'); join('nae'); addTrust(3, {except:['min']}); tr('min', -2);
+          const L = ['+윤가람이 보트를 몰고 간다. 부부가 보트에 오른다. (전원 신뢰 +3, 최민규 -2)'];
+          if(chance(.2) && has('ga')) L.push('!좀비 한 마리가 보트에 매달렸다. ' + hurt(byId('ga'), 10) + '.'); return L; }}
+    ]},
+  bite:{ pri:90, title:'물린 자국', axes:'체력 × 신뢰',
+    when(){ const c = alive().find(c => c.bitten !== null && !c.quar && !c.watch && (c.bitten >= 2 || c.revealed)); if(c){ S.evTarget = c.id; return true; } return false; },
+    text(){ const c = byId(S.evTarget); const p = partnerOf(c);
+      return [c.revealed ? `${c.name}${jo(c.name,'이','가')} 스스로 소매를 걷었다. 잇자국이다. “말해야 할 것 같아서요.”` : `${c.name}${jo(c.name,'이','가')} 새벽부터 열이 난다. 한소율이 붕대를 풀자 잇자국이 드러났다. 신뢰가 낮아 지금까지 숨겨 왔다.`,
+        p ? `${p.name}${jo(p.name,'은','는')} 알고 있었다.` : '배 안이 조용해진다.']; },
+    choices(){ const c = byId(S.evTarget); const p = partnerOf(c);
+      return [
+        {k:'A', t:'격리한다', d: S.up.boat ? '구명보트에 태워 배 뒤에 매단다.' : '매점 창고에 가둔다.', tags:[T('cost','신뢰(전체) -3'), p ? T('cost',`${p.name} -15`) : T('mute','')].filter(x=>x[1]),
+          run(){ c.quar = true; c.role = 'rest'; addTrust(-3); if(p) tr(p.id, -15); return [`${c.name}${jo(c.name,'은','는')} 격리됐다. 밤새 아무도 그쪽을 보지 않는다.`]; }},
+        {k:'B', t:'지금 처리한다', d:'아무도 위험하게 두지 않는다. 대신 모두가 그 장면을 본다.', tags:[T('cost','신뢰(전체) -15'), p ? T('cost',`${p.name} 떠날 위험`) : T('mute','')].filter(x=>x[1]),
+          run(){ const L = []; addTrust(-10); kill(c, L, '지휘자의 결정이었다.'); if(p) tr(p.id, -20); return L; }},
+        {k:'C', t:'지켜본다', d:'아직 변하지 않았다. 믿어 본다.', tags:[T('gain','신뢰 유지'),T('risk','밤에 변이 50%')],
+          run(){ c.watch = true; return ['그를 객실에 그대로 둔다. 모두가 잠든 척을 한다.']; }}
+      ]; }},
+  birth:{ pri:85, title:'진통', axes:'식수 × 신뢰 × 접근도', when:() => { const r = byId('rin'); return !!(r && r.alive && !r.left && r.pregnant && S.day >= S.f.birthDay); },
+    text:() => ['문하린에게 진통이 시작됐다. 예정보다 빠르다.', has('so') || has('yu') ? '의료 경험이 있는 사람이 배에 있다.' : '배에 의료 경험이 있는 사람이 없다.'],
+    choices(){ const med = has('so') || has('yu');
+      const ok = (p, L) => { const r = byId('rin'); if(chance(p)){ r.pregnant = false; join('baby'); addTrust(15); S.f.born = true; L.push('+새벽 무렵, 아기 울음이 객실을 채운다. 이름은 ‘새벽’. 전원 신뢰 +15.'); } else { r.hp = clamp(r.hp - 30, 0, 100); addTrust(-10); r.pregnant = false; L.push('!아이는 첫 숨을 쉬지 못했다. 문하린 체력 -30, 전원 신뢰 -10.'); } return L; };
+      return [
+        {k:'A', t:'약품을 써서 안전하게', d:'마지막 약품일 수도 있다.', tags:[T('cost','약품 -1'),T('gain',`성공 ${med?90:75}%`)], need:() => S.meds >= 1 ? null : '약품 1 필요', run(){ S.meds--; return ok(med ? .9 : .75, []); }},
+        {k:'B', t:'약품 없이 받는다', d:'약품을 아낀다.', tags:[T('risk',`성공 ${med?70:55}%`)], run(){ return ok(med ? .7 : .55, []); }},
+        {k:'C', t:'진통을 하루 늦춘다', d:'눕혀서 하루를 버틴다. 내일 다시 온다.', tags:[T('cost','문하린 체력 -10')], run(){ const r = byId('rin'); r.hp -= 10; S.f.birthDay = S.day + 1; S.used.birth = false; return ['문하린을 눕히고 하루를 기다린다.']; }}
+      ]; }},
+  wedding:{ pri:80, title:'선상 결혼식', axes:'신뢰 × 식수 × 접근도',
+    when(){ if(S.f.married || S.day > 6) return false; const p = bestPair(); if(p && (S.f.lastDeath || S.f.lastAttack)){ S.evTarget = p.map(c=>c.id).join('|'); return true; } return false; },
+    text(){ const [a,b] = S.evTarget.split('|').map(byId);
+      return ['아무도 말이 없는 아침.', `${a.name}${jo(a.name,'이','가')} ${b.name}에게 다가간다. 두 사람은 며칠 동안 같은 자리에서 일해 왔다(관계 ${rel(a.id,b.id)}).`, '“내일이 마지막일지도 모르니까.”']; },
+    choices(){ const [a,b] = S.evTarget.split('|').map(byId);
+      return [
+        {k:'A', t:'정식으로 결혼식을 올린다', d:'오늘은 이곳에 머문다. 특식을 내고 갑판 조명을 켠다.', tags:[T('cost','하루 머묾'),T('cost','비상식량 -10'),T('risk','접근도 +10'),T('gain','신뢰(전체) +10'),T('gain','가장 지친 사람 +15')],
+          run(){ S.f.forcedStay = true; S.food -= 10; addAp(10); addTrust(10); const low = lowestTrust(); if(low) tr(low.id, 15); S.f.married = [a.id,b.id];
+            const L = [`+${a.name}${jo(a.name,'과','와')} ${b.name}의 결혼식. 박두석이 주례를, 아이들이 화동을 맡는다.`, `+전원 신뢰 +10${low ? `, ${low.name} +15` : ''}. 두 사람은 함께 일할 때 효율이 오른다.`];
+            if(S.loc === 4){ const h = giveTool('pill'); if(h) L.push(`+망원 자경단이 결혼 선물로 정수 알약을 건넸다. (${h.name})`); }
+            return L; }},
+        {k:'B', t:'갑판에서 반지만 나눈다', d:'간소하게. 오늘도 움직일 수 있다.', tags:[T('gain','신뢰 +4')], run(){ addTrust(4); S.f.married = [a.id,b.id]; return [`${a.name}${jo(a.name,'과','와')} ${b.name}${jo(b.name,'이','가')} 철사로 만든 반지를 나눈다.`]; }},
+        {k:'C', t:'하구에 도착하면 하자', d:'지금은 그럴 때가 아니다.', tags:[T('cost','신뢰 -2')], run(){ addTrust(-2); return ['두 사람은 고개를 끄덕였다. 약속은 함대 위로 미뤄졌다.']; }}
+      ]; }},
+  leave:{ pri:75, title:'떠나려는 사람', axes:'신뢰 × 식수',
+    when(){ const c = lowestTrust(c => c.trust < 30 && !c.quar && !c.away); if(c){ S.evTarget = c.id; return true; } return false; },
+    text(){ const c = byId(S.evTarget); return [`${c.name}${jo(c.name,'이','가')} 선미에서 짐을 싸고 있다. 물통 하나가 가방에 들어가 있다.`, '“여기선 더 못 있겠어요.”']; },
+    choices(){ const c = byId(S.evTarget); const p = Math.min(.95, avgTrust()/100 + .1);
+      return [
+        {k:'A', t:'붙잡는다', d:'설득한다. 배가 서로를 믿을수록 잘 된다.', tags:[T('risk',`설득 ${pct(p)}`),T('gain',`${c.name} +15`)],
+          run(){ if(chance(p)){ tr(c.id, 15); return [`+${c.name}${jo(c.name,'은','는')} 가방을 내려놓았다. (${c.name} 신뢰 +15)`]; } leaveShip(c); const L = [`!${c.name}${jo(c.name,'은','는')} 끝내 떠났다. 식수 -3.`]; addTrust(-3); return L; }},
+        {k:'B', t:'보내준다', d:'물 3을 챙겨 준다.', tags:[T('cost','식수 -3'),T('cost','신뢰 -2')], run(){ leaveShip(c); addTrust(-2); return [`${c.name}${jo(c.name,'은','는')} 강변으로 걸어갔다. 아무도 뒤돌아보지 않았다.`]; }},
+        {k:'C', t:'오늘 밤 감시를 붙인다', d:'떠나지 못하게 한다. 대신 더 멀어진다.', tags:[T('cost',`${c.name} -5`),T('risk','오늘 밤만 유효')], run(){ tr(c.id, -5); S.f.watched = c.id; return [`${c.name} 곁에 누군가 앉는다. 둘 다 말이 없다.`]; }}
+      ]; }},
+  memorial:{ pri:70, title:'강 위의 추모', axes:'신뢰 × 접근도', when:() => S.f.lastDeath,
+    text:() => ['어젯밤 한 사람을 잃었다. 아침 강물이 유난히 조용하다.'],
+    choices:() => [
+      {k:'A', t:'강 위에서 추모식을 연다', d:'잠시 엔진을 끄고 모두 갑판에 선다.', tags:[T('risk','접근도 +10'),T('gain','신뢰 +5')], run(){ addAp(10); addTrust(5); return ['+모두가 갑판에 섰다. 누군가 이름을 부르고, 모두가 따라 부른다. (전원 신뢰 +5)']; }},
+      {k:'B', t:'바로 출발한다', d:'슬퍼할 시간에 한 구간이라도 더 간다.', tags:[T('cost','신뢰 -2')], run(){ addTrust(-2); return ['엔진 소리가 침묵을 덮는다.']; }},
+      {k:'C', t:'유품을 가장 지친 사람에게', d:'남은 물건이 누군가를 붙잡아 준다.', tags:[T('gain','가장 지친 사람 +8')], run(){ const low = lowestTrust(); if(low){ tr(low.id, 8); return [`+${low.name}${jo(low.name,'이','가')} 유품을 받아 든다. (${low.name} +8)`]; } return ['…']; }}
+    ]},
+  theft:{ pri:60, title:'몰래 마신 물', axes:'식수 × 신뢰', when(){ if(S.day < 3 || waterDays() >= 2) return false; const c = lowestTrust(c => c.trust < 50); if(c){ S.evTarget = c.id; return true; } return false; },
+    text(){ const c = byId(S.evTarget); return ['아침, 매점 창고의 식수 통 두 개가 비어 있다. 서명자가 장부를 펼친다. “어젯밤에 누가 있었어요.”', `${c.name}${jo(c.name,'이','가')} 갑판에서 눈을 피한다.`]; },
+    choices(){ const c = byId(S.evTarget);
+      return [
+        {k:'A', t:'공개적으로 추궁한다', d:'범인을 밝힌다. 배 안에 적이 생길 수 있다.', tags:[T('cost',`${c.name} -15`),T('gain','나머지 +3')], run(){ tr(c.id, -15); addTrust(3, {except:[c.id]}); return [`${c.name}${jo(c.name,'이','가')} 자백했다. (${c.name} -15, 나머지 +3)`]; }},
+        {k:'B', t:'덮고 넘어간다', d:'아무 일 없던 것처럼.', tags:[T('risk','오늘 밤 재발 50%'),T('cost','김나래 -5')], run(){ S.f.theftAgain = true; tr('nae', -5); return ['장부는 덮였다. 다들 알고 있다.']; }},
+        {k:'C', t:'배급제를 도입한다', d:'모두에게 같은 규칙. 소비 20% 감소, 회복 절반.', tags:[T('gain','식수 소비 -20%'),T('cost',`신뢰 ${has('myeong')?-2:-3}`),T('cost','체력 회복 절반')], run(){ S.rationing = true; addTrust(has('myeong') ? -2 : -3); return ['서명자가 물통마다 이름표를 붙였다. 하루 0.8잔.']; }}
+      ]; }},
+  algae:{ pri:55, title:'녹색 물', axes:'식수 × 체력 × 날씨', when:() => wx().algae && waterDays() < 2.5,
+    text:() => ['비가 그친 강물이 초록빛으로 변했다. 끓여도 냄새가 남는다.'],
+    choices:() => [
+      {k:'A', t:'그냥 마신다', d:'세 명이 강물을 마신다.', tags:[T('gain','식수 +8'),T('risk','질병 60% ×3')], run(){ S.water += 8; const L = ['+식수 +8.']; adults().slice().sort(()=>rnd()-.5).slice(0,3).forEach(c => { if(chance(.6)){ c.sick = true; L.push('!' + hurt(c, 15) + ' (질병)'); } }); return L; }},
+      {k:'B', t:'끓여서 마신다', d:'연료를 쓴다. 끓여도 15%는 탈이 난다.', tags:[T('cost','연료 -3L'),T('gain','식수 +12'),T('risk','질병 15%')], need:() => S.fuel >= 3 ? null : '연료 3L 필요', run(){ S.fuel -= 3; S.water += 12; const L = ['+식수 +12.']; if(chance(.15)){ const c = pick(adults()); c.sick = true; L.push('!' + hurt(c, 15) + ' (질병)'); } return L; }},
+      {k:'C', t:'참는다', d:'오늘은 버틴다.', tags:[T('cost','신뢰 -3')], run(){ addTrust(-3); return ['다들 입술이 마른다.']; }},
+      {k:'D', t:'정수 알약을 쓴다', d:'한 번은 안전하게 마실 수 있다.', tags:[T('lock','정수 알약'),T('gain','식수 +6 안전')], need:() => hasTool('pill') ? null : '정수 알약 필요', run(){ useTool('pill'); S.water += 6; return ['+알약이 녹자 물빛이 맑아졌다. 식수 +6.']; }}
+    ]},
+  ttuk:{ pri:50, title:'편의점 생수 창고', axes:'식수 × 접근도', when:() => S.loc === 1 && waterDays() < 3.5,
+    text:() => [has('se') ? '오세진의 드론이 뚝섬 유원지를 비춘다. 편의점 뒤 창고에 생수 박스가 쌓여 있고, 앞마당에 좀비 6마리가 있다.' : '뚝섬 유원지 편의점 뒤 창고에 생수 박스가 보인다. 앞마당에 무언가 움직인다.'],
+    choices(){ const n = landers().length; const no = n ? null : '상륙조(건강 70 이상)가 필요하다';
+      return [
+        {k:'A', t:'짧게 상륙', d:'눈에 띄는 것만 챙긴다.', tags:[T('gain','식수 +8'),T('risk','접근도 +20')], need:() => no, run(){ S.f.landedToday = true; S.docked = true; addAp(20); S.water += 8; return ['+식수 +8.']; }},
+        {k:'B', t:'보통 상륙', d:'창고까지 다녀온다.', tags:[T('gain','식수 +14'),T('gain','부품 +2'),T('risk','접근도 +30')], need:() => no, run(){ S.f.landedToday = true; S.docked = true; addAp(30); S.water += 14; S.parts += 2; return ['+식수 +14, 부품 +2.']; }},
+        {k:'C', t:'창고 셔터까지 연다', d:'오래 머물수록 많이 얻는다.', tags:[T('gain','식수 +24'),T('gain','부품 +3 · 갈고리 장대'),T('risk','접근도 +45'),T('risk','부상 30%')], need:() => no,
+          run(){ S.f.landedToday = true; S.docked = true; addAp(45); S.water += 24; S.parts += 3; const L = ['+식수 +24, 부품 +3.']; const h = giveTool('hook', landers().map(c=>c.id)); if(h) L.push(`+창고 구석에서 갈고리 장대를 찾았다. (${h.name})`); if(chance(.3)){ const v = pick(landers()); L.push('!' + hurt(v, 15, .15) + '.'); } return L; }},
+        {k:'D', t:'창고를 포기한다', d:'오늘은 배에 남는다.', tags:[T('cost','신뢰 -2'),T('gain','접근도 0')], run(){ addTrust(-2); return ['아무도 상륙하지 않았다. 창고의 생수 박스가 멀어진다.']; }}
+      ]; }},
+  banpo:{ pri:50, title:'다리 위의 손짓', axes:'식수 × 신뢰 × 접근도', when:() => S.loc === 2,
+    text:() => ['반포대교 난간 위에서 한 여자가 아이를 안고 손을 흔든다. 뒤쪽 계단에 그림자 몇 개가 보인다.'],
+    choices(){ const rescuer = has('ga') && byId('ga').hp >= 40 ? byId('ga') : null;
+      const fail = (p, L) => { if(!chance(p)) return; if(rescuer){ L.push(`!아이가 밧줄에서 미끄러져 강에 떨어졌다. ${rescuer.name}${jo(rescuer.name,'이','가')} 뛰어들어 구해냈다. ` + hurt(rescuer, 20) + '.'); } else { L.push('!아이가 강에 떨어졌다. 아무도 뛰어들지 못했다.'); S.f.noSea = true; } };
+      return [
+        {k:'A', t:'배를 대고 태운다', d:'확실하게 태운다. 계단의 그림자가 내려온다.', tags:[T('gain','인원 +2'),T('gain','신뢰 +3'),T('risk','접근도 +25')], run(){ addAp(25); join('yu'); join('sea'); addTrust(3); return ['+최유나와 딸 최서아가 배에 오른다. (전원 신뢰 +3)']; }},
+        {k:'B', t:'밧줄만 내린다', d:'배를 다리에 붙이지 않는다.', tags:[T('gain','인원 +2'),T('risk','접근도 +10'),T('risk','실패 30%')],
+          run(){ addAp(10); const L = []; fail(.3, L); join('yu'); if(!S.f.noSea) join('sea'); addTrust(S.f.noSea ? -5 : 5, {except:['min']}); L.push(S.f.noSea ? '!최유나만 배에 올랐다.' : '+최유나와 딸 최서아가 배에 오른다. (최민규 외 신뢰 +5)'); return L; }},
+        {k:'C', t:'지나친다', d:'모두를 태울 수는 없다.', tags:[T('cost','신뢰(전체) -8')], run(){ addTrust(-8); return ['!새벽호는 다리 밑을 조용히 빠져나간다. “저 아이 얼굴이 계속 떠올라요.”']; }},
+        {k:'D', t:'쌍안경으로 먼저 살핀다', d:'물린 자국이 없는지 보고, 안전한 쪽으로 밧줄을 내린다.', tags:[T('lock','쌍안경'),T('gain','인원 +2'),T('risk','접근도 +10'),T('risk','실패 10%')], need:() => hasTool('binoc') ? null : '쌍안경 필요',
+          run(){ addAp(10); const L = ['~쌍안경으로 보니 두 사람 모두 물린 자국이 없다.']; fail(.1, L); join('yu'); if(!S.f.noSea) join('sea'); addTrust(5, {except:['min']}); L.push('+최유나와 딸이 배에 오른다.'); return L; }}
+      ]; }},
+  yeoui:{ pri:50, title:'기름 냄새 마리나', axes:'연료 × 접근도', when:() => S.loc === 3,
+    text:() => ['여의나루 마리나. 버려진 요트들 사이로 기름 냄새가 난다. 여의도 공원 쪽에서 신음이 들린다.'],
+    choices(){ const no = landers().length ? null : '상륙조(건강 70 이상)가 필요하다';
+      return [
+        {k:'A', t:'가까운 요트만 턴다', d:'짧게.', tags:[T('gain','연료 +6'),T('risk','접근도 +20')], need:() => no, run(){ S.f.landedToday = true; S.docked = true; addAp(20); S.fuel += 6; return ['+연료 +6L.']; }},
+        {k:'B', t:'관리 사무소까지', d:'주유 펌프와 사무소를 뒤진다.', tags:[T('gain','연료 +10'),T('gain','무전기'),T('risk','접근도 +30')], need:() => no,
+          run(){ S.f.landedToday = true; S.docked = true; addAp(30); S.fuel += 10; const L = ['+연료 +10L.']; if(!S.f.tools.radio){ S.f.tools.radio = 1; const h = giveTool('radio', landers().map(c=>c.id)); if(h) L.push(`+관리 사무소에서 무전기를 찾았다. (${h.name})`); } return L; }},
+        {k:'C', t:'저장 탱크까지 연다', d:'가장 많이. 가장 오래.', tags:[T('gain','연료 +16 · 부품 +2'),T('gain','무전기'),T('risk','접근도 +45'),T('risk','부상 35%')], need:() => no,
+          run(){ S.f.landedToday = true; S.docked = true; addAp(45); S.fuel += 16; S.parts += 2; const L = ['+연료 +16L, 부품 +2.']; if(!S.f.tools.radio){ S.f.tools.radio = 1; const h = giveTool('radio', landers().map(c=>c.id)); if(h) L.push(`+무전기를 찾았다. (${h.name})`); } if(chance(.35)) L.push('!' + hurt(pick(landers()), 15, .15) + '.'); return L; }},
+        {k:'D', t:'마리나를 지나친다', d:'좀비 소리가 너무 가깝다.', tags:[T('cost','신뢰 -2'),T('gain','접근도 0')], run(){ addTrust(-2); return ['기름 냄새를 뒤로하고 마리나를 빠져나왔다.']; }}
+      ]; }},
+  mang:{ pri:50, title:'망원 교역', axes:'식수 × 연료 × 신뢰', when:() => S.loc === 4,
+    text:() => ['망원 한강공원 선착장. 자경단이 깃발을 흔든다. “배는 못 태워 줘. 대신 거래는 하자.”'],
+    choices:() => [
+      {k:'A', t:'연료를 내주고 물을 받는다', d:'', tags:[T('cost','연료 -10L'),T('gain','식수 +20')], need:() => S.fuel >= 10 ? null : '연료 10L 필요', run(){ S.fuel -= 10; S.water += 20; addAp(10); return ['+식수 +20. 자경단 구역에 배를 댔다.']; }},
+      {k:'B', t:'약품을 내주고 물과 필터를 받는다', d:'정수 필터는 남은 여정 내내 물을 만든다.', tags:[T('cost','약품 -2'),T('gain','식수 +20'),T('gain','정수 필터')], need:() => S.meds >= 2 ? null : '약품 2 필요', run(){ S.meds -= 2; S.water += 20; S.up.filter = true; addAp(10); return ['+식수 +20. 정수 필터 설치 (매일 +6).']; }},
+      {k:'C', t:'한소율이 하루 진료를 해준다', d:'자경단 환자를 본다. 내일 아침 돌아온다(80%).', tags:[T('gain','식수 +30 · 정수 필터'),T('risk','한소율 복귀 80%')], need:() => has('so') ? null : '한소율 필요',
+        run(){ const so = byId('so'); so.away = true; so.role = 'rest'; S.f.soAway = true; S.water += 30; S.up.filter = true; addAp(10); return ['+식수 +30, 정수 필터 설치. 한소율이 자경단 구역으로 건너갔다.']; }},
+      {k:'D', t:'무전으로 미리 교섭한다', d:'조건을 먼저 맞춘다.', tags:[T('lock','무전기'),T('cost','약품 -1'),T('gain','식수 +20 · 필터')], need:() => !hasTool('radio') ? '무전기 필요' : S.meds >= 1 ? null : '약품 1 필요', run(){ S.meds -= 1; S.water += 20; S.up.filter = true; addAp(10); return ['+무전으로 조건을 맞췄다. 식수 +20, 정수 필터 설치.']; }},
+      {k:'E', t:'거래하지 않는다', d:'내줄 것이 없다.', tags:[T('cost','신뢰 -1')], run(){ addTrust(-1); return ['자경단은 깃발을 내렸다.']; }}
+    ]},
+  crate:{ pri:1, filler:true, title:'떠내려온 상자', axes:'부품 × 체력', when:() => true,
+    text:() => ['뱃전에 나무 상자 하나가 부딪힌다. 무언가 달라붙어 있다.'],
+    choices:() => [
+      {k:'A', t:'손으로 건져 올린다', d:'', tags:[T('gain','부품 +2'),T('risk','매달림 30%')], run(){ S.parts += 2; const L = ['+부품 +2.']; cling(L, .3); return L; }},
+      {k:'B', t:'장대로 끌어온다', d:'', tags:[T('lock','갈고리 장대'),T('gain','부품 +2 안전')], need:() => hasTool('hook') ? null : '갈고리 장대 필요', run(){ S.parts += 2; return ['+장대로 안전하게 끌어왔다. 부품 +2.']; }},
+      {k:'C', t:'그냥 흘려보낸다', d:'', tags:[T('cost','신뢰 -1')], run(){ addTrust(-1); return ['상자는 하류로 사라졌다.']; }}
+    ]},
+  voice:{ pri:1, filler:true, title:'라디오 속 목소리', axes:'신뢰 × 접근도', when:() => true,
+    text:() => ['라디오 잡음 사이로 누군가 노래를 부른다. 다른 생존자다.'],
+    choices:() => [
+      {k:'A', t:'응답한다', d:'목소리를 돌려준다.', tags:[T('gain','신뢰 +4'),T('risk','접근도 +10')], run(){ addTrust(4); addAp(10); return ['+누군가 노래를 따라 부른다. (전원 신뢰 +4)']; }},
+      {k:'B', t:'듣기만 한다', d:'', tags:[T('gain','신뢰 +1')], run(){ addTrust(1); return ['노래는 세 곡 만에 끊겼다.']; }},
+      {k:'C', t:'라디오를 끈다', d:'배터리를 아낀다.', tags:[T('gain','연료 +1L'),T('cost','신뢰 -2')], run(){ S.fuel += 1; addTrust(-2); return ['조용해졌다.']; }}
+    ]},
+  kids:{ pri:1, filler:true, title:'갑판 위의 아이들', axes:'신뢰 × 접근도', when:() => alive().some(c => c.child && !c.baby),
+    text:() => ['아이들이 갑판에서 뛰어논다. 웃음소리가 강을 건너간다.'],
+    choices:() => [
+      {k:'A', t:'함께 놀아준다', d:'간식을 나눠 준다.', tags:[T('gain','신뢰 +3'),T('cost','비상식량 -2')], run(){ addTrust(3); S.food -= 2; return ['+잠깐, 모두가 웃었다. (전원 신뢰 +3)']; }},
+      {k:'B', t:'조용히 시킨다', d:'', tags:[T('gain','접근도 -5'),T('cost','신뢰 -2')], run(){ S.approach = Math.max(0, S.approach - 5); addTrust(-2); return ['아이들이 객실로 들어갔다.']; }},
+      {k:'C', t:'낚시를 가르친다', d:'', tags:[T('lock','낚싯대'),T('gain','비상식량 +3'),T('risk','접근도 +5')], need:() => hasTool('rod') ? null : '낚싯대 필요', run(){ S.food += 3; addAp(5); return ['+작은 붕어 세 마리. 비상식량 +3.']; }}
+    ]},
+  raiders:{ pri:2, filler:true, title:'약탈자의 신호', axes:'식수 × 연료 × 체력', when:() => S.era !== 'early',
+    text:() => ['강변에서 거울 빛이 깜빡인다. 무장한 사람들이 손짓한다.'],
+    choices:() => [
+      {k:'A', t:'물을 주고 연료를 받는다', d:'', tags:[T('cost','식수 -5'),T('gain','연료 +8L')], need:() => S.water >= 5 ? null : '식수 5 필요', run(){ S.water -= 5; S.fuel += 8; return ['+거래는 조용히 끝났다. 연료 +8L.']; }},
+      {k:'B', t:'전속력으로 피한다', d:'', tags:[T('cost','연료 -4L')], run(){ S.fuel = Math.max(0, S.fuel - 4); return ['빛이 뒤로 멀어진다.']; }},
+      {k:'C', t:'무시한다', d:'', tags:[T('risk','접근도 +20')], run(){ addAp(20); return ['!강변의 사람들이 배를 따라 걷기 시작했다.']; }}
+    ]}
+};
+function pickEvent(){
+  const list = Object.entries(EV).filter(([id,e]) => !e.filler && !S.used[id] && e.when()).sort((a,b) => b[1].pri - a[1].pri);
+  if(list.length){ list[0][1].when(); return list[0][0]; }
+  const fill = Object.entries(EV).filter(([id,e]) => e.filler && S.used[id] !== S.day - 1 && e.when());
+  return pick(fill)[0];
+}
+function fin(onTime, arrive, L, extra){ S.f.final = {onTime, arrive}; if(extra) L.push('+' + extra); L.push(`도착 시각 ${arrive} · 함대 출발 04:00`); return L; }
+
+/* ============================ FLOW ============================ */
+function startDay(){
+  S.wx = (WEATHER[S.season] || WEATHER.monsoon)[S.day-1] || 'clear';
+  S.anchor = false; S.lights = false; S.boil = 0;
+  Object.assign(S.f, {landedToday:false, movedLegs:0, forcedStay:false, theftAgain:false, watched:null});
+  S.crew.forEach(c => { c.medToday = false; });
+  const pre = [];
+  if(S.f.soAway){ const so = byId('so'); S.f.soAway = false; so.away = false; if(chance(.8)) pre.push('+한소율이 자경단 구역에서 돌아왔다.'); else { so.left = true; pre.push('!한소율이 돌아오지 않았다. 자경단은 대답이 없다.'); } }
+  const cnt = (waterDays() < 2) + (S.fuel < 15) + (avgTrust() < 50);
+  S.f.crisis = DIFFS[S.diff].crisis && cnt >= 2;
+  if(S.f.crisis) pre.push('~강이 잠시 조용하다. 위기 보정: 오늘 상륙 보급 +30%, 습격 확률 -10%p.');
+  if(bonded()) pre.push('+희망 연쇄: 신뢰 결속. 역할 효율 +20%, 결속 전용 선택지가 열린다.');
+  S.pre = pre;
+  S.evId = pickEvent();
+  if(EV[S.evId].filler) S.used[S.evId] = S.day;
+  S.phase = 'morning';
+  snaps.push(clone(S)); if(snaps.length > 5) snaps.shift();
+  save(); render(true);
+}
+function chooseEvent(k){
+  const ev = EV[S.evId]; const ch = k === '_pass' ? {k:'–', t:'아무것도 할 수 없다', run(){ addTrust(-2); return ['오늘은 그냥 지나갔다.']; }} : ev.choices().find(c => c.k === k);
+  if(!ch || (ch.need && ch.need())) return;
+  const out = ch.run();
+  if(!ev.filler && S.used[S.evId] !== false) S.used[S.evId] = true;
+  if(S.used[S.evId] === false) delete S.used[S.evId];
+  S.f.lastDeath = false; S.f.lastAttack = false;
+  S.evTitle = ev.title; logLine(`『${ev.title}』 — ${ch.t}`);
+  alive().forEach(c => { if(c.hp <= 0) kill(c, out, ''); });
+  S.lines = out;
+  S.phase = S.evId === 'final' ? 'final' : 'evres';
+  render(true);
+}
+function toAssign(){ autoFix(); S.phase = 'assign'; render(); }
+function autoFix(){ alive().forEach(c => { if(c.child || c.quar || c.away) { c.role = 'rest'; return; } if(c.role === 'land' && !canLand(c)) c.role = 'rest'; if(c.pregnant && (c.role === 'guard' || c.role === 'land')) c.role = 'rest'; }); }
+function setRole(id, role){ const c = byId(id); if(!c || c.child || c.quar || c.away) return; if(role === 'land' && !canLand(c)) return; if(c.pregnant && (role === 'guard' || role === 'land')) return; c.role = role; render(); }
+function toRoute(){ S.phase = 'route'; render(); }
+function route(kind){
+  const L = [];
+  if(kind === 'stay'){ L.push(`${LOCS[S.loc].short}에 머문다. 연료를 아끼지만 접근도가 쌓인다.`); }
+  else {
+    const n = kind === 'two' ? 2 : 1;
+    for(let i = 0; i < n && S.loc < 6; i++){ travelLeg(L); }
+    S.f.movedLegs = n;
+  }
+  S.lines = L;
+  const canLandHere = LOCS[S.loc].loot && !S.f.landedToday && S.f.movedLegs < 2;
+  S.phase = canLandHere ? 'landing' : 'night';
+  if(!canLandHere) S.pre = L; else S.routeLines = L;
+  render(true);
+}
+function travelLeg(L){
+  const i = S.loc, cost = legCost(i); S.fuel -= cost;
+  let line = `${LOCS[i].short} → ${LOCS[i+1].short}: 연료 -${cost}L`;
+  if(wx().fog && !engineHas('du') && !S.up.search && chance(.2)){ S.fuel -= 3; line += ' · 안개 속 항로 이탈, 연료 -3L'; }
+  if(wx().rain){ let d = 10; if(engineHas('du')) d = byId('du').lv >= 2 ? 0 : 5; if(d){ S.hull -= d; line += ` · 불어난 수위에 다리 충돌, 선체 -${d}`; } }
+  if(S.season === 'drought' && (i === 2 || i === 3) && chance(.3)){ S.hull -= 10; S.fuel -= 3; line += ' · 얕은 여울에 좌초, 선체 -10 · 연료 -3L'; }
+  if(S.fuel < 0) S.fuel = 0;
+  L.push(line);
+  cling(L, wx().fog ? .2 : .3);
+  S.loc++; S.approach = S.loc === 6 ? 25 : 0; S.docked = false; S.nightsHere = 0;
+  if(S.loc === 6 && S.day < 7) L.push('!행주대교 위의 좀비 떼가 새벽호를 내려다본다. 이곳은 기다리기 좋은 곳이 아니다. (접근도 25에서 시작)');
+  if(engineHas('tae')) gainXp('tae'); if(engineHas('du')) gainXp('du');
+}
+function gainXp(id){ const c = byId(id); if(!c) return; c.xp++; const lv = Math.min(3, 1 + Math.floor(c.xp/3)); if(lv > c.lv){ c.lv = lv; S.pre = (S.pre||[]); S.levelUps = (S.levelUps||[]).concat(`${c.name} 숙련도 Lv${lv}`); } }
+function lootMult(){
+  const ls = landers(), n = ls.length; let m = n === 0 ? 0 : n === 1 ? .6 : n === 2 ? 1 : 1.2;
+  if(ls.some(c => c.id === 'ga')) m *= byId('ga').lv >= 2 ? 1.3 : 1.2;
+  if(bonded()) m *= 1.2; if(S.f.crisis) m *= 1.3; m *= ERAS[S.era].loot;
+  if(S.f.married && ls.filter(c => S.f.married.includes(c.id)).length === 2) m *= 1.2;
+  return m;
+}
+function landPreview(len){
+  const loc = LOCS[S.loc]; const m = lootMult() * LEN[len].m; const got = [];
+  for(const k in loc.loot){ const v = Math.round(loc.loot[k]*m); if(v > 0) got.push([k, v]); }
+  let ap = LEN[len].ap + (loc.zone === 'park' ? 5 : 0) + (!S.docked && !S.up.boat ? 10 : 0);
+  return {got, ap:Math.round(ap * wx().mult)};
+}
+const RES_N = {water:'식수', parts:'부품', meds:'약품', fuel:'연료'};
+function land(len){
+  const L = (S.routeLines || []).slice(); S.routeLines = null;
+  if(len === 'none'){ L.push('오늘은 상륙하지 않는다.'); S.pre = L; S.phase = 'night'; render(true); return; }
+  const loc = LOCS[S.loc]; const pv = landPreview(len);
+  if(!S.docked){ if(S.up.boat) L.push('구명보트로 상륙해 배를 강변에 대지 않았다.'); else S.docked = true; }
+  S.approach += pv.ap;
+  pv.got.forEach(([k,v]) => { S[k] += v; }); if(S.fuel > 60) S.fuel = 60;
+  L.push(`+${LEN[len].n} 상륙: ` + (pv.got.length ? pv.got.map(([k,v]) => `${RES_N[k]} +${v}${k==='fuel'?'L':''}`).join(', ') : '건진 것이 없다') + ` · 접근도 +${pv.ap}`);
+  if(len !== 'short' && loc.tool && !S.f.tools[loc.tool + S.loc] && !hasTool(loc.tool)){
+    S.f.tools[loc.tool + S.loc] = 1; if(loc.tool === 'radio') S.f.tools.radio = 1;
+    const h = giveTool(loc.tool, landers().map(c=>c.id)); if(h) L.push(`+${TOOLS[loc.tool]}${jo(TOOLS[loc.tool],'을','를')} 찾았다. (${h.name})`);
+  }
+  if(len === 'long' && chance(.35)){ const v = pick(landers()); if(v) L.push('!' + hurt(v, 15, .15) + ' (상륙 중 부상).'); }
+  if(landers().some(c => c.id === 'ga')) gainXp('ga');
+  S.f.landedToday = true; S.pre = L; S.phase = 'night'; render(true);
+}
+function build(id){
+  const u = UPG.find(x => x.id === id); if(!u || S.parts < u.cost) return;
+  if(!u.repeat && S.up[id]) return;
+  S.parts -= u.cost;
+  if(id === 'repair') S.hull = clamp(S.hull + 15, 0, 100); else S.up[id] = true;
+  flash('parts'); render();
+}
+function useMed(id){
+  const c = byId(id); if(!c || S.meds < 1 || !c.alive) return;
+  S.meds--; c.hp = clamp(c.hp + 25 + (has('so') ? 10 : 0), 0, 100); c.sick = false; c.medToday = true;
+  if(has('so')) gainXp('so');
+  openCrew();
+  render();
+}
+function settle(){
+  const L = (S.pre || []).filter(x => typeof x === 'string' && !x.startsWith('~강이') && !x.startsWith('+희망'));
+  const R = [];
+  const m = wx().mult;
+  if(S.season === 'cold'){ S.fuel = Math.max(0, S.fuel - 2); R.push('난방에 연료 2L를 썼다.'); }
+  if(S.anchor && S.fuel >= 2){
+    S.fuel -= 2; S.approach = Math.round(S.approach * (S.season === 'cold' ? .6 : .3)); S.docked = false;
+    R.push(`강 한가운데 닻을 내렸다. 연료 -2L, 접근도 → ${S.approach}`);
+  } else {
+    if(!S.docked){ S.approach += Math.round(10*m); S.docked = true; }
+    else if(S.nightsHere >= 1){ S.approach += Math.round(10*m); R.push('같은 자리에서 또 밤을 보낸다. 냄새가 퍼졌다.'); }
+    if(S.loc === 6){ S.approach += 15; R.push('!다리 위 좀비 떼가 계류줄 쪽으로 몰려든다. 접근도 +15'); }
+    S.nightsHere++;
+  }
+  if(S.lights){ S.approach += Math.round(10*m); addTrust(2); R.push('+갑판 조명을 켰다. 다들 얼굴이 밝아졌다. (신뢰 +2)'); }
+  if(has('baby')) S.approach += 5;
+  if(S.fuel <= 4 && !S.anchor){
+    S.approach += 40; R.push('!연료 고갈 — 배가 물살에 떠밀려 강변에 좌초했다. 접근도 +40.');
+    if(S.loc < 6 && chance(.5)){ S.loc++; S.nightsHere = 0; R.push(`~떠밀린 덕분에 ${LOCS[S.loc].short} 근처까지 내려왔다.`); }
+  }
+  if(S.boil > 0){
+    if(S.loc === 6){ R.push('!염분 구간이라 강물을 끓여도 마실 수 없다.'); }
+    else { const n = Math.min(S.boil, S.fuel); S.fuel -= n; S.water += n*4; R.push(`+강물을 끓였다. 연료 -${n}L → 식수 +${n*4}`); }
+  }
+  if(wx().rain){ const v = S.up.rain ? 12 : 6; S.water += v; R.push(`+빗물을 받았다. 식수 +${v}`); }
+  if(S.up.filter && S.loc !== 6){ S.water += 6; R.push('+정수 필터. 식수 +6'); }
+  // attack
+  const ap = S.approach, band = aBand(ap), p = attackP(ap), r = rnd(), hit = r < p;
+  const rl = rollLine(p, r, hit, '습격');
+  R.push(`오늘 밤 접근도 ${ap} (${band.n}) · 습격 확률 ${pct(p)}`);
+  if(rl) R.push(rl);
+  if(hit){
+    S.f.attackStreak++; S.f.lastAttack = true;
+    let z = Math.max(1, Math.round(ri(band.z[0], band.z[1]) * ERAS[S.era].z));
+    let g = guards();
+    const refused = g.filter(c => c.trust < 50 && chance(.2));
+    if(refused.length){ g = g.filter(c => !refused.includes(c)); R.push('!' + refused.map(c => c.name).join(', ') + `${jo(refused[refused.length-1].name,'이','가')} 경계를 거부했다. (불신)`); }
+    if(S.f.watched){ const w = byId(S.f.watched); if(w) g = g.filter(c => c.id !== w.id); }
+    let cap = guardCap(g);
+    if(S.loc === 4 && !S.anchor){ cap += 2; }
+    const rest = Math.max(0, z - cap);
+    R.push(`!습격 — 좀비 ${z}마리가 계류줄을 타고 올라온다. 방어 ${cap}${S.loc===4&&!S.anchor?' (자경단 지원 +2 포함)':''}.`);
+    if(!rest && cap - z <= 1) R.push(`~${cap - z === 0 ? '마지막 한 마리까지' : '1마리 차이로'} 막아냈다. 피해 없음.`);
+    else if(!rest) R.push('+모두 막아냈다. 피해 없음.');
+    else {
+      const fm = S.up.fence ? .7 : 1; const hits = [];
+      for(let i = 0; i < rest; i++){
+        if(g.length && chance(.5)){ hits.push(hurt(pick(g), Math.round(15*fm), .25)); }
+        else if(g.length){ const d = Math.round(8*fm); S.hull -= d; hits.push(`선체 -${d}`); }
+        else { const v = pick(onboard().filter(c => !c.baby)); if(v) hits.push(hurt(v, Math.round(15*fm), .25)); }
+      }
+      R.push('!' + hits.join(', ') + '.');
+    }
+    if(byId('min') && g.includes(byId('min'))) gainXp('min');
+  } else { S.f.attackStreak = 0; if(!rl) R.push('+습격 없음.'); }
+  // infection progression
+  alive().forEach(c => {
+    if(c.bitten === null) return;
+    if(c.quar){
+      const p2 = partnerOf(c);
+      R.push(`!새벽, 격리된 곳에서 비명이 들렸다. ${c.name}${jo(c.name,'이','가')} 변이했다.`);
+      if(p2 && S.up.boat){ R.push(`!${p2.name}${jo(p2.name,'이','가')} 직접 밧줄을 끊었다. 구명보트를 잃었다.`); S.up.boat = false; }
+      kill(c, R, '');
+    } else if(c.watch){
+      if(chance(.5) || c.bitten >= 2){ R.push(`!객실에서 ${c.name}${jo(c.name,'이','가')} 변이했다.`); const v = pick(onboard().filter(x => x.id !== c.id && !x.baby)); kill(c, R, ''); if(v) R.push('!' + hurt(v, 20, .3) + '.'); }
+      else { c.bitten++; R.push(`~${c.name}${jo(c.name,'은','는')} 아직 버티고 있다.`); }
+    } else {
+      c.bitten++;
+      if(c.bitten >= 3){ R.push(`!잠든 사이 ${c.name}${jo(c.name,'이','가')} 변이했다. 아무도 몰랐다.`); const v = pick(onboard().filter(x => x.id !== c.id && !x.baby)); kill(c, R, ''); if(v) R.push('!' + hurt(v, 20, .3) + '.'); }
+    }
+  });
+  if(S.f.theftAgain && chance(.5)){ S.water = Math.max(0, S.water - 3); R.push('!밤사이 또 물이 줄었다. 식수 -3'); }
+  // consumption
+  const cons = consumption(); S.water = Math.max(0, S.water - cons);
+  R.push(`식수 소비 -${cons}${S.rationing ? ' (배급제)' : ''} → ${S.water} (${waterDays().toFixed(1)}일분)`);
+  S.food -= headcount(); if(engineHas('du') === false && has('du') && byId('du').tool === 'rod' && byId('du').role === 'rest') S.food += 2;
+  if(S.food <= 0){ S.food = 0; addTrust(-5); alive().forEach(c => c.hp = clamp(c.hp - 5, 0, 100)); R.push('!비상식량이 바닥났다. 전원 체력 -5, 신뢰 -5.'); }
+  // health
+  const wb = wBand();
+  const healMul = (wb.k === 'low' || wb.k === 'crit' || wb.k === 'out' || S.rationing) ? .5 : 1;
+  alive().forEach(c => {
+    if(c.role === 'rest' && !c.quar && !c.away) c.hp = clamp(c.hp + Math.round((10 + (has('yu') ? 5 : 0)) * healMul), 0, 100);
+    if(c.hp < 40 && !c.medToday) c.hp = clamp(c.hp - 5, 0, 100);
+    if(c.sick && !c.medToday) c.hp = clamp(c.hp - 5, 0, 100);
+  });
+  addTrust(-1); R.push('지친 밤이 지나간다. 전원 신뢰 -1');
+  if(wb.k === 'plenty'){ addTrust(1); R.push('+식수 여유. 전원 신뢰 +1'); }
+  if(wb.k === 'crit'){ addTrust(-3); alive().forEach(c => c.hp = clamp(c.hp - 5, 0, 100)); R.push('!식수 위기. 전원 체력 -5, 신뢰 -3'); }
+  if(wb.k === 'out'){ addTrust(-10); alive().forEach(c => c.hp = clamp(c.hp - 15, 0, 100)); R.push('!식수 고갈. 전원 체력 -15, 신뢰 -10'); }
+  // desertion
+  alive().forEach(c => {
+    if(c.child || c.quar || c.away || c.trust >= 30 || S.f.watched === c.id) return;
+    if(chance(.3)){ leaveShip(c); R.push(`!밤사이 ${c.name}${jo(c.name,'이','가')} 물통을 들고 떠났다. 식수 -3`); }
+  });
+  // deaths
+  alive().forEach(c => { if(c.hp <= 0) kill(c, R, '상처를 이기지 못했다.'); });
+  // relationships
+  ['land','guard','engine','water'].forEach(role => { const g = onboard().filter(c => c.role === role && !c.child); for(let i = 0; i < g.length; i++) for(let j = i+1; j < g.length; j++) addRel(g[i].id, g[j].id, 10); });
+  if(S.levelUps && S.levelUps.length){ R.push('+숙련도 상승: ' + S.levelUps.join(', ')); S.levelUps = []; }
+  if(S.fuel > 60){ S.fuel = 60; R.push('연료 탱크가 가득 찼다 (최대 60L).'); }
+  S.lines = L.concat(R);
+  S.hist.push(histRow(S.evTitle));
+  // game over checks
+  if(S.hull <= 0){ if(!S.f.lastChance){ S.phase = 'result'; render(true); lastChance('hull'); return; } return endGame('sink'); }
+  if(onboard().filter(c => !c.baby).length === 0){ return endGame('sink'); }
+  S.phase = 'result'; save(); render(true);
+}
+function leaveShip(c){ c.left = true; c.tool = null; S.water = Math.max(0, S.water - 3); const p = partnerOf(c); if(p && rel(c.id,p.id) >= 60 && !p.child){ p.left = true; } logLine(`${c.name} 이탈`); }
+function nextDay(){ S.day++; startDay(); }
+function resolveFinal(){
+  const f = S.f.final || {onTime:false};
+  if(f.onTime) return endGame('ok');
+  if(!S.f.lastChance) return lastChance('fleet');
+  return endGame('drift');
+}
+function lcOdds(hero){ const t = hero ? hero.trust/100 : .5; return S.diff === 'story' ? .95 : S.diff === 'survival' ? clamp(t - .2, .25, .6) : clamp(t - .05, .35, .85); }
+function lastChance(kind){
+  S.f.lastChance = true;
+  const hero = lowestTrust() ? alive().filter(c => !c.child).sort((a,b) => b.trust - a.trust)[0] : null;
+  const m = $('#modal');
+  const txt = kind === 'hull'
+    ? ['선체에 물이 차오른다. 새벽호가 기울기 시작한다.', '마지막 기회 — 누군가 앞장서면 아직 막을 수 있다.']
+    : ['04:00. 함대의 불빛이 움직이기 시작한다. 아직 행주대교 아래다.', '마지막 기회 — 누가 갑판에 설 것인가.'];
+  m.innerHTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="lc-h"><h3 id="lc-h">마지막 기회</h3>${txt.map(t => `<p style="margin:0">${esc(t)}</p>`).join('')}
+    <p class="hint" style="margin:0">한 판에 한 번, 치명적인 실패 직전에 나온다. 앞장서는 사람은 배에서 신뢰가 가장 높은 사람이고, ${kind === 'hull' ? '선체는 반드시 버틴다' : `성공률은 그 사람의 신뢰와 난이도로 정해진다 (${pct(lcOdds(hero))})`}.</p>
+    <button class="btn" data-act="lc" data-arg="${kind}">${hero ? esc(hero.name) + jo(hero.name,'이','가') + ' 앞장선다' : '모두가 함께 버틴다'}</button></div>`;
+  S.f.pendingLC = kind; m.hidden = false;
+  if(!HEADLESS) m.querySelector('button').focus();
+}
+function doLastChance(kind){
+  $('#modal').hidden = true; S.f.pendingLC = null;
+  const hero = alive().filter(c => !c.child).sort((a,b) => b.trust - a.trust)[0];
+  if(kind === 'hull'){
+    S.hull = 15; S.lines.push(`~${hero ? hero.name : '모두'}${hero ? jo(hero.name,'이','가') : '가'} 앞장서 물을 퍼냈다. 모두가 양동이를 들었다. 선체 15로 버틴다.`);
+    if(hero) tr(hero.id, 10); S.phase = 'result'; save(); render(true); return;
+  }
+  const p = lcOdds(hero), r = rnd(), ok = r < p;
+  S.lines.push(`~${hero ? hero.name : '누군가'}${hero ? jo(hero.name,'이','가') : '가'} 손전등을 들고 갑판에 섰다. 안개 속으로 세 번 길게, 세 번 짧게. (성공 ${pct(p)} — 앞장선 사람의 신뢰로 정해진다)`);
+  const rl = rollLine(p, r, !ok, '신호'); if(rl) S.lines.push(rl);
+  if(ok){ if(hero) tr(hero.id, 20); S.lines.push('+04:07, 함대의 서치라이트가 새벽호를 비췄다.'); endGame('ok', true); }
+  else { S.lines.push('!불빛은 끝내 돌아보지 않았다.'); endGame('drift'); }
+}
+function endGame(kind, viaLast){
+  let id;
+  if(kind === 'sink') id = 'sink';
+  else if(kind === 'drift') id = 'drift';
+  else { const deaths = S.crew.filter(c => !c.alive).length; const allowed = S.f.born ? 1 : 0; id = (deaths <= allowed && !S.crew.some(c => c.left) && avgTrust() >= 70) ? 'dawn' : 'fleet'; addTrust(3); }
+  S.ending = id; S.phase = 'ending';
+  if(S.hist[S.hist.length-1].d !== S.day || S.phase === 'ending') S.hist.push(histRow(id === 'drift' || id === 'sink' ? '실패' : '합류'));
+  const unl = [];
+  META.endings[id] = (META.endings[id] || 0) + 1;
+  const addU = (arr, v, label) => { if(!META[arr].includes(v)){ META[arr].push(v); unl.push(label); } };
+  if(id === 'fleet' || id === 'dawn') addU('seasons', 'drought', '계절 ‘가뭄’');
+  if(id === 'dawn') addU('eras', 'mid', '시점 ‘중기’');
+  if((id === 'fleet' || id === 'dawn') && S.season === 'drought') addU('seasons', 'cold', '계절 ‘한파’');
+  if((id === 'fleet' || id === 'dawn') && S.era === 'mid') addU('eras', 'late', '시점 ‘후기’');
+  if(id === 'drift' || id === 'sink'){ META.driftBonus = true; unl.push('다음 판 시작 연료 +5L'); }
+  S.unlocked = unl; META.played = true;
+  saveMeta(); LS.del(SAVE_KEY);
+  render(true); showEnding();
+}
+function rewind(){
+  if(S.f.rewinds <= 0 || snaps.length < 1) return;
+  const left = S.f.rewinds - 1;
+  const target = S.phase === 'ending' || S.phase === 'result' ? snaps[snaps.length-1] : (snaps.length >= 2 ? snaps[snaps.length-2] : snaps[0]);
+  if(S.phase !== 'ending' && S.phase !== 'result' && snaps.length >= 2) snaps.pop();
+  S = clone(target); S.f.rewinds = left; S.phase = 'morning';
+  $('#modal').hidden = true;
+  save(); render(true);
+}
+function save(){ if(!S || S.phase === 'ending') return; LS.set(SAVE_KEY, {S, snaps, opts}); }
+
+/* ============================ UI ============================ */
+const PHASE_TIME = {morning:'오전 06:20', evres:'오전 06:40', assign:'오전 07:00', route:'오전 09:00', landing:'오후 01:00', night:'오후 07:40', result:'오전 05:30', final:'오전 03:00', ending:'오전 04:00'};
+function badge(id, label, val, cls, sub){ return `<div class="badge" id="b-${id}"><span class="l">${label}</span><span class="v ${cls||''}">${val}${sub ? ` <small>${sub}</small>` : ''}</span></div>`; }
+let lastVals = {};
+function flash(id){ const el = document.getElementById('b-' + id); if(el){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); } }
+function renderHUD(){
+  const h = $('#hud');
+  if(!S){ h.innerHTML = ''; return; }
+  const wb = wBand(), fb = fBand(), tb = tBand(), ap = S.phase === 'night' ? nightAp() : S.approach, ab = aBand(ap);
+  h.innerHTML = `<div class="day"><b>Day ${S.day}</b><span>${SEASONS[S.season].n} · ${PHASE_TIME[S.phase] || ''}</span></div>`
+    + badge('water', '식수', `${S.water}`, wb.c, `${waterDays().toFixed(1)}일 · ${wb.n}`)
+    + (() => { const short = fuelToGoal() - S.fuel; return badge('fuel', '연료', `${S.fuel}L`, short > 0 ? 'warn' : fb.c, short > 0 ? `행주까지 ${short}L 모자람` : fb.n); })()
+    + badge('trust', '신뢰', `${avgTrust()}`, tb.c, tb.n)
+    + badge('crew', '인원', `${headcount()}명`, '', '')
+    + badge('ap', S.phase === 'night' ? '오늘 밤 접근도' : '접근도', `${ap}`, ab.c, `${ab.n} · 습격 ${pct(attackP(ap))}`)
+    + badge('hull', '선체', `${S.hull}`, S.hull <= 30 ? 'bad' : S.hull <= 60 ? 'warn' : '', '')
+    + badge('wx', '날씨', wx().n, 'info', '')
+    + `<div class="hud-btns"><button class="hbtn" data-act="crew">생존자</button><button class="hbtn" data-act="log">항해 일지</button><button class="hbtn" data-act="menu">메뉴</button></div>`;
+  const cur = {water:S.water, fuel:S.fuel, trust:avgTrust(), crew:headcount(), hull:S.hull, parts:S.parts};
+  for(const k in cur){ if(lastVals[k] !== undefined && lastVals[k] !== cur[k]) flash(k); }
+  lastVals = cur;
+  $('#where').textContent = LOCS[S.loc].name;
+  renderRoster();
+  const need = fuelToGoal();
+  $('#goal').innerHTML = S.loc >= 6 ? `행주 도착 · 함대까지 D-${Math.max(0, 7 - S.day)}` : `행주까지 연료 <b>${need}L</b> / 보유 <b>${S.fuel}L</b> · 함대 D-${Math.max(0, 7 - S.day)}`;
+}
+function liClass(s){ return s[0] === '!' ? ['bad', s.slice(1)] : s[0] === '+' ? ['good', s.slice(1)] : s[0] === '~' ? ['near', s.slice(1)] : ['', s]; }
+function lines(arr){ if(!arr || !arr.length) return ''; return `<ul class="lines">${arr.map(s => { const [c,t] = liClass(s); return `<li class="${c}">${esc(t)}</li>`; }).join('')}</ul>`; }
+function tagsHtml(tags){ return `<div class="tags">${(tags||[]).filter(t => t && t[1]).map(([c,t]) => `<span class="tag t-${c}">${esc(t)}</span>`).join('')}</div>`; }
+function card(act, arg, k, t, d, tags, dis, sel){
+  return `<button class="choice${sel ? ' sel' : ''}" data-act="${act}" data-arg="${esc(arg)}" ${dis ? 'disabled' : ''}><span class="k">${esc(k)}</span><span class="b"><span class="t">${esc(t)}</span>${d ? `<span class="d">${esc(d)}</span>` : ''}${tagsHtml(tags)}${dis ? `<span class="tags"><span class="tag t-lock">${esc(dis)}</span></span>` : ''}</span></button>`;
+}
+function ordered(ev){
+  const ch = ev.choices(); if(S.evId === 'final') return ch;
+  S.ord = S.ord || {}; const key = S.day + ':' + S.evId;
+  if(!S.ord[key]){ const free = ch.map((c,i) => i).filter(i => !(ch[i].tags||[]).some(t => t[0] === 'lock')); const lock = ch.map((c,i) => i).filter(i => !free.includes(i)); for(let i = free.length - 1; i > 0; i--){ const j = Math.floor(rnd()*(i+1)); [free[i], free[j]] = [free[j], free[i]]; } S.ord[key] = free.concat(lock); }
+  return S.ord[key].filter(i => ch[i]).map(i => ch[i]);
+}
+function head(title, sub){ return `<div class="ph"><h2>${esc(title)}</h2><span class="sub">${esc(sub||'')}</span></div>`; }
+function renderPanel(){
+  const P = $('#panel'); if(!S){ P.innerHTML = ''; return; }
+  let h = '';
+  const ev = S.evId ? EV[S.evId] : null;
+  switch(S.phase){
+    case 'morning': {
+      h += head(`Day ${S.day} — ${ev.title}`, `교차 이벤트 · ${ev.axes}`);
+      h += tipHtml('morning');
+      h += `<div class="radio">라디오 ${esc(RADIO[S.day-1] || '')}</div>`;
+      h += lines(S.pre);
+      const spk = ['bite','leave','theft'].includes(S.evId) && S.evTarget ? [byId(S.evTarget)] : S.evId === 'wedding' && S.evTarget ? S.evTarget.split('|').map(byId) : S.evId === 'birth' ? [byId('rin')] : [];
+      if(spk.filter(Boolean).length) h += `<div class="spk">${spk.filter(Boolean).map(c => `<span class="one">${avatar(c, 64)}<span class="nm">${esc(c.name)}<small class="hint">신뢰 ${c.trust} · 체력 ${c.hp}</small></span></span>`).join('')}</div>`;
+      h += `<div class="txt">${ev.text().map(t => `<p>${esc(t)}</p>`).join('')}</div>`;
+      const chs = ordered(ev);
+      h += `<div class="choices">${chs.map((c, i) => card('ev', c.k, 'ABCDE'[i], c.t, c.d, c.tags, c.need && c.need())).join('')}${chs.every(c => c.need && c.need()) ? card('ev', '_pass', '–', '아무것도 할 수 없다', '오늘은 그냥 지나간다.', [T('cost','신뢰 -2')], null) : ''}</div>`;
+      break; }
+    case 'evres':
+      h += head(S.evTitle, '선택의 결과') + lines(S.lines);
+      h += `<div class="row"><button class="btn" data-act="toAssign">역할 배치로</button><span class="hint">오늘 누가 무엇을 맡을지 정한다.</span></div>`;
+      break;
+    case 'assign': {
+      h += head('역할 배치', '생존자마다 오늘 맡을 일을 고른다') + tipHtml('assign');
+      h += `<div class="crew-list">${alive().map(c => {
+        const st = [hpState(c) + ' ' + c.hp, `신뢰 ${c.trust}`]; if(c.sick) st.push('질병'); if(c.quar) st.push('격리'); if(c.away) st.push('외출'); if(c.tool) st.push(TOOLS[c.tool]); if(c.lv > 1) st.push('Lv' + c.lv);
+        const fixed = c.child || c.quar || c.away;
+        return `<div class="crew-row"><div class="who">${avatar(c, 34)}<b>${esc(c.name)}</b><span>${c.age ? c.age + '세 · ' : ''}${esc(c.skill)} — ${esc(st.join(' · '))}</span></div><div class="seg" role="group" aria-label="${esc(c.name)} 역할">${ROLES.map(r => {
+          const dis = fixed ? r.id !== 'rest' : (r.id === 'land' && !canLand(c)) || (c.pregnant && (r.id === 'guard' || r.id === 'land'));
+          return `<button data-act="role" data-arg="${c.id}|${r.id}" class="${c.role === r.id ? 'on' : ''}" ${dis ? 'disabled' : ''} aria-pressed="${c.role === r.id}">${r.n}</button>`; }).join('')}</div></div>`; }).join('')}</div>`;
+      const nE = engineCount();
+      h += `<p class="hint" style="margin:0">경계 방어력 ${guardCap(guards())} · 상륙조 ${landers().length}명 (보급 ×${lootMult().toFixed(2)}) · 기관·조타 ${nE}명${S.loc < 6 ? ` · 다음 구간 연료 ${legCost(S.loc)}L` : ''}${nE ? '' : ' — 기관·조타가 없으면 이동할 수 없다'}</p>`;
+      h += `<div class="row"><button class="btn" data-act="toRoute">배치 완료</button></div>`;
+      break; }
+    case 'route': {
+      h += head('항로 선택', `지금 ${LOCS[S.loc].name}`) + tipHtml('route');
+      const nE = engineCount();
+      const opts2 = [];
+      const stayAp = S.docked ? Math.round(10*wx().mult) : 0;
+      opts2.push(card('route', 'stay', '■', `${LOCS[S.loc].short}에 머문다`, '연료를 아낀다. 접근도는 초기화되지 않고 밤에 더 쌓인다.', [T('gain','연료 0'),T('risk', `접근도 ${S.approach}${stayAp ? ` → 밤 +${stayAp}` : ''}`)], null));
+      if(S.loc < 6){
+        const c1 = legCost(S.loc);
+        const why1 = S.f.forcedStay ? '오늘은 결혼식으로 머문다' : !nE ? '기관·조타 인원 필요' : S.fuel < c1 ? `연료 ${c1}L 필요` : null;
+        const risk = [T('cost', `연료 -${c1}L`), T('gain', '접근도 0으로 초기화'), T('risk', `다리 매달림 ${wx().fog ? 20 : 30}%`)];
+        if(wx().rain) risk.push(T('cost', `선체 -${engineHas('du') ? (byId('du').lv >= 2 ? 0 : 5) : 10}`));
+        if(wx().fog && !engineHas('du') && !S.up.search) risk.push(T('risk','항로 이탈 20%'));
+        opts2.push(card('route', 'one', '→', `${LOCS[S.loc+1].name}로 간다`, LOCS[S.loc+1].loot ? `보급: ${Object.keys(LOCS[S.loc+1].loot).map(k => RES_N[k]).join('·')}` : '목적지. 함대를 기다린다.', risk, why1));
+        if(S.loc < 5){
+          const c2 = c1 + legCost(S.loc+1);
+          const why2 = S.f.forcedStay ? '오늘은 결혼식으로 머문다' : !nE ? '기관·조타 인원 필요' : S.fuel < 30 ? '연료 충분(30L 이상)일 때만' : S.fuel < c2 ? `연료 ${c2}L 필요` : null;
+          opts2.push(card('route', 'two', '⇉', `두 구간 — ${LOCS[S.loc+2].name}까지`, '하루를 만회한다. 대신 오늘은 상륙할 수 없다.', [T('cost', `연료 -${c2}L`), T('risk','매달림 판정 2회'), T('cost','상륙 불가')], why2));
+        }
+      }
+      h += `<div class="choices">${opts2.join('')}</div>`;
+      h += `<p class="hint" style="margin:0">행주까지 필요 연료 ${fuelToGoal()}L · 보유 ${S.fuel}L · 남은 날 ${Math.max(0, 7 - S.day)}일 (Day 7에 마지막 물길)</p>`;
+      break; }
+    case 'landing': {
+      h += head(`${LOCS[S.loc].name} 상륙`, '상륙 시간이 길수록 많이 얻고, 좀비가 모인다') + tipHtml('landing');
+      h += lines(S.routeLines);
+      if(has('se')) h += `<p class="hint" style="margin:0">드론 정찰(오세진): 정박지 주변 좀비 ${LOCS[S.loc].zone === 'park' ? '많음' : '보통'} · 상륙조 ${landers().length}명</p>`;
+      const n = landers().length;
+      const lc = [card('land', 'none', '–', '상륙하지 않는다', '배에서 밤을 준비한다.', [T('gain','접근도 0')], null)];
+      ['short','normal','long'].forEach((len, i) => {
+        const pv = landPreview(len);
+        const tg = pv.got.map(([k,v]) => T('gain', `${RES_N[k]} +${v}${k==='fuel'?'L':''}`)); tg.push(T('risk', `접근도 +${pv.ap}`));
+        if(len === 'long') tg.push(T('risk','부상 35%'));
+        if(len !== 'short' && LOCS[S.loc].tool && !S.f.tools[LOCS[S.loc].tool + S.loc] && !hasTool(LOCS[S.loc].tool)) tg.push(T('gain', TOOLS[LOCS[S.loc].tool] + ' 발견 가능'));
+        lc.push(card('land', len, ['A','B','C'][i], `${LEN[len].n} 상륙`, '', tg, n ? null : '상륙조(건강 70 이상)가 필요하다'));
+      });
+      h += `<div class="choices">${lc.join('')}</div>`;
+      break; }
+    case 'night': {
+      h += head('밤 준비', '어디서, 어떻게 밤을 보낼지 정한다') + tipHtml('night');
+      h += lines(S.pre);
+      const dockAp = (() => { const sv = S.anchor; S.anchor = false; const v = nightAp(); S.anchor = sv; return v; })();
+      const ancAp = (() => { const sv = S.anchor; S.anchor = true; const v = nightAp(); S.anchor = sv; return v; })();
+      h += `<div class="grid2">${card('moor', 'dock', '⚓', '정박 유지', S.loc === 4 ? '자경단이 습격 때 좀비 2마리를 막아준다.' : '연료를 쓰지 않는다.', [T('risk', `접근도 ${dockAp} · 습격 ${pct(attackP(dockAp))}`)], null, !S.anchor)}
+        ${card('moor', 'anchor', '◎', '강 한가운데 닻', '물살에 밀리지 않게 엔진을 돌린다.', [T('cost','연료 -2L'), T('gain', `접근도 ${ancAp} · 습격 ${pct(attackP(ancAp))}`)], S.fuel < 2 ? '연료 2L 필요' : null, S.anchor)}</div>`;
+      const wr = onboard().filter(c => c.role === 'water' && !c.child).length; const maxB = S.loc === 6 ? 0 : Math.min(wr*2, S.fuel);
+      if(S.boil > maxB) S.boil = maxB;
+      h += `<div class="opt"><span><span class="n">강물 끓이기</span><br><span class="hint">연료 1L → 식수 4 · 물 관리 1명당 최대 2L${S.loc === 6 ? ' · 염분 구간이라 불가' : ''}</span></span><span class="step"><button data-act="boil" data-arg="-1" aria-label="줄이기">−</button><b>${S.boil}L</b><button data-act="boil" data-arg="1" aria-label="늘리기" ${S.boil >= maxB ? 'disabled' : ''}>+</button></span></div>`;
+      h += `<div class="opt"><span><span class="n">갑판 조명</span><br><span class="hint">신뢰 +2 · 접근도 +${Math.round(10*wx().mult)}</span></span><button class="btn ghost" data-act="lights">${S.lights ? '켜짐' : '꺼짐'}</button></div>`;
+      h += `<div class="opt" style="align-items:flex-start"><span><span class="n">배 개조</span><br><span class="hint">부품 ${S.parts}개 보유 · 약품 ${S.meds}개는 ‘생존자’에서 사용</span></span><span class="mini">${UPG.map(u => { const done = !u.repeat && S.up[u.id]; return `<button class="btn ghost" style="font-size:14px;padding:4px 10px" data-act="build" data-arg="${u.id}" ${done || S.parts < u.cost ? 'disabled' : ''} title="${esc(u.d)}">${esc(u.n)} ${done ? '✓' : `(${u.cost})`}</button>`; }).join('')}</span></div>`;
+      if(S.up.filter) h += `<p class="hint" style="margin:0">정수 필터 설치됨 · 매일 밤 식수 +6</p>`;
+      h += `<div class="row"><button class="btn" data-act="settle">밤을 보낸다</button><span class="hint">식수 소비 -${consumption()} 예정</span></div>`;
+      break; }
+    case 'result':
+      h += head(`Day ${S.day} 밤 — 결산`, '무슨 일이 있었고, 왜 그렇게 됐는지') + tipHtml('result') + lines(S.lines);
+      h += `<div class="row"><button class="btn" data-act="next">Day ${S.day + 1} 아침으로</button></div>`;
+      break;
+    case 'final':
+      h += head('마지막 물길 — 결과', '새벽 4시를 향해') + lines(S.lines);
+      h += `<div class="row"><button class="btn" data-act="final">새벽 4시</button></div>`;
+      break;
+    case 'ending':
+      h += head(ENDINGS[S.ending].n, '항해 끝') + lines(S.lines);
+      h += `<div class="row"><button class="btn" data-act="showEnding">결과 보기</button></div>`;
+      break;
+  }
+  P.innerHTML = h;
+}
+function render(scroll){
+  if(HEADLESS) return;
+  renderHUD(); renderPanel(); sceneDirty = true;
+  if(scroll){ const p = $('#panel'); if(p.getBoundingClientRect().top > window.innerHeight * .85) p.scrollIntoView({block:'start', behavior: RM ? 'auto' : 'smooth'}); }
+}
+function openCrew(){
+  const m = $('#modal');
+  const rows = S.crew.map(c => {
+    const st = !c.alive ? '사망' : c.left ? '이탈' : [hpState(c), c.sick ? '질병' : '', c.quar ? '격리' : '', c.away ? '외출' : '', c.pregnant ? '임신' : '', c.bitten !== null && (c.revealed || c.quar || c.watch) ? '물림' : ''].filter(Boolean).join(' · ');
+    const canMed = c.alive && !c.left && S.meds > 0 && (c.hp < 100 || c.sick);
+    return `<tr><td>${avatar(c, 40)} <b>${esc(c.name)}</b><br><span class="hint">${c.age ? c.age + '세 · ' : ''}${esc(c.skill)}</span></td>
+      <td style="min-width:90px">${c.alive && !c.left ? `${c.hp}<div class="bar"><i style="width:${c.hp}%;background:${c.hp >= 70 ? 'var(--gain)' : c.hp >= 40 ? 'var(--ember)' : 'var(--cost)'}"></i></div>` : '—'}</td>
+      <td>${c.alive && !c.left ? c.trust + ' ' + tBand(c.trust).n : '—'}</td><td>${esc(st)}</td>
+      <td>${c.tool ? esc(TOOLS[c.tool]) : ''}${c.lv > 1 ? ` · Lv${c.lv}` : ''}</td>
+      <td>${canMed ? `<button class="btn ghost" style="font-size:13px;padding:2px 8px" data-act="med" data-arg="${c.id}">약품 +${25 + (has('so') ? 10 : 0)}</button>` : ''}</td></tr>`; }).join('');
+  const pairs = Object.entries(S.rel).filter(([k,v]) => v >= 40).sort((a,b) => b[1]-a[1]).slice(0,5).map(([k,v]) => { const [a,b] = k.split('|').map(byId); if(!a || !b) return ''; return `${a.name}·${b.name} ${v}${v >= 80 ? ' (결혼 가능)' : v >= 60 ? ' (연인)' : ' (동료)'}`; }).filter(Boolean);
+  m.innerHTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="crew-h"><button class="btn ghost x" data-act="close">닫기</button><h3 id="crew-h">생존자</h3>
+    <p class="hint" style="margin:0">약품 ${S.meds}개 · 부품 ${S.parts}개 · 비상식량 ${S.food}인분 · 신호탄 ${S.flare}발</p>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th>이름</th><th>체력</th><th>신뢰</th><th>상태</th><th>도구</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${pairs.length ? `<p style="margin:0"><b>관계</b> <span class="hint">같은 역할에 함께 배치하면 +10/일 · 80 이상이면 결혼식이 열릴 수 있다</span><br>${esc(pairs.join(' · '))}</p>` : ''}
+    <p class="hint" style="margin:0">${S.crew.filter(c => c.note && c.alive && !c.left).map(c => `${c.name}: ${c.note}`).map(esc).join('<br>')}</p></div>`;
+  m.hidden = false;
+}
+function openLog(){
+  const m = $('#modal');
+  m.innerHTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="log-h"><button class="btn ghost x" data-act="close">닫기</button><h3 id="log-h">항해 일지</h3>
+    <canvas id="chart" width="360" height="120"></canvas><div class="legend"><span><i style="background:#f2a65a"></i>신뢰</span><span><i style="background:#8dbdf2"></i>식수 일수 ×10</span><span><i style="background:#8fd8a2"></i>연료</span></div>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th>일차</th><th>식수</th><th>연료</th><th>신뢰</th><th>접근도</th><th>인원</th><th>사건</th></tr></thead><tbody>${S.hist.map(r => `<tr><td>${r.d ? 'D' + r.d : '출발'}</td><td>${r.water} (${r.wd})</td><td>${r.fuel}</td><td>${r.trust}</td><td>${r.ap}</td><td>${r.crew}</td><td>${esc(r.ev || '')}</td></tr>`).join('')}</tbody></table></div>
+    <ul class="lines">${S.log.slice(-14).map(l => `<li>Day ${l.d} · ${esc(l.t)}</li>`).join('')}</ul></div>`;
+  m.hidden = false; drawChart($('#chart'), S.hist);
+}
+function drawChart(c, hist){
+  if(!c) return;
+  const dpr = Math.min(3, window.devicePixelRatio || 1), cw = Math.max(240, c.clientWidth || 360), ch = Math.round(cw/3);
+  c.width = Math.round(cw*dpr); c.height = Math.round(ch*dpr);
+  const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  x.fillStyle = '#121019'; x.fillRect(0, 0, cw, ch);
+  const L = 30, R = 12, T = 10, B = 22, w = cw - L - R, h = ch - T - B;
+  x.font = `11px 'Gowun Dodum', 'Apple SD Gothic Neo', sans-serif`; x.textBaseline = 'middle';
+  [0,25,50,75,100].forEach(v => { const y = Math.round(T + h*(1 - v/100)) + .5; x.strokeStyle = v ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.2)'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, y); x.lineTo(L + w, y); x.stroke(); x.fillStyle = '#8f879e'; x.textAlign = 'right'; x.fillText(v, L - 6, y); });
+  if(!hist.length) return;
+  const n = hist.length, X = i => L + (n === 1 ? w/2 : i*w/(n - 1)), Y = v => T + h*(1 - clamp(v, 0, 100)/100);
+  const step = Math.ceil(n / Math.max(2, Math.floor(w/38)));
+  x.fillStyle = '#a79fb8'; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  hist.forEach((r, i) => { if(i % step === 0 || i === n - 1) x.fillText(r.d ? 'D' + r.d : '출발', X(i), ch - 6); });
+  const line = (key, col, mul) => {
+    x.strokeStyle = col; x.lineWidth = 2.2; x.lineJoin = 'round'; x.lineCap = 'round'; x.beginPath();
+    hist.forEach((r, i) => { const px = X(i), py = Y(r[key]*mul); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke();
+    hist.forEach((r, i) => { x.beginPath(); x.arc(X(i), Y(r[key]*mul), 3, 0, Math.PI*2); x.fillStyle = '#121019'; x.fill(); x.lineWidth = 1.8; x.stroke(); });
+  };
+  line('fuel', '#8fd8a2', 1); line('wd', '#8dbdf2', 10); line('trust', '#f2a65a', 1);
+}
+function openMenu(){
+  const m = $('#modal');
+  m.innerHTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="menu-h"><button class="btn ghost x" data-act="close">닫기</button><h3 id="menu-h">메뉴</h3>
+    <p class="hint" style="margin:0">${SEASONS[S.season].n} · ${ERAS[S.era].n}(${ERAS[S.era].s}) · ${DIFFS[S.diff].n} 난이도</p>
+    <div class="row"><button class="btn ghost" data-act="rewind" ${S.f.rewinds > 0 && snaps.length >= 2 ? '' : 'disabled'}>어제 아침부터 다시 (${S.f.rewinds >= 99 ? '무제한' : S.f.rewinds + '회 남음'})</button>
+    <button class="btn ghost" data-act="lobby">로비로 나가기</button><button class="btn ghost danger" data-act="abandonAsk">이번 항해 포기</button></div>
+    <div class="confirm" id="abandonBox" hidden><p style="margin:0">이번 항해를 지우고 출항 준비 화면으로 돌아갈까요? 엔딩 기록과 해금은 남는다.</p><div class="row"><button class="btn danger" data-act="abandon">포기하고 새로 시작</button><button class="btn ghost" data-act="abandonNo">계속 항해</button></div></div>
+    <h3 style="font-size:18px">규칙 요약</h3>
+    <ul class="lines">
+      <li>식수 구간은 ‘식수 ÷ 인원’ 일수로 정한다. 사람을 태우면 같은 물이라도 구간이 내려간다.</li>
+      <li>이동하면 접근도가 0이 되지만 연료가 든다. 머무르면 연료를 아끼지만 밤마다 접근도가 쌓인다.</li>
+      <li>접근도 구간: 고요 0~19(5%) · 주의 20~39(20%) · 위험 40~69(45%) · 포위 70+(100%). 비·안개는 접근도 상승 ×0.5.</li>
+      <li>신뢰 결속(70+)이면 효율 +20%와 결속 전용 선택지. 불신(30~49)은 경계 거부·상처 숨김, 분열(30 미만)은 이탈.</li>
+      <li>한 번의 판정으로 끝나지 않는다. 치명적 실패 직전 한 번 ‘마지막 기회’가 나온다.</li>
+      <li>위기 보정: 식수·연료·신뢰 중 둘 이상이 부족하면 다음 날 보급 +30%, 습격 -10%p (생존 난이도 제외).</li>
+    </ul></div>`;
+  m.hidden = false;
+}
+function showEnding(){
+  if(HEADLESS) return;
+  const m = $('#modal'); const e = ENDINGS[S.ending];
+  const ep = [];
+  if(S.f.married){ const [a,b] = S.f.married.map(byId); ep.push(`${a.name}${jo(a.name,'과','와')} ${b.name}${jo(b.name,'은','는')} 함대 갑판에서 한 번 더 반지를 나눴다.`); }
+  if(S.f.born) ep.push('함대의 첫 출생 기록에 ‘새벽’이라는 이름이 올랐다.');
+  const lost = S.crew.filter(c => !c.alive).map(c => c.name); if(lost.length) ep.push(`돌아오지 못한 사람: ${lost.join(', ')}.`);
+  const gone = S.crew.filter(c => c.left).map(c => c.name); if(gone.length) ep.push(`배를 떠난 사람: ${gone.join(', ')}.`);
+  m.innerHTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="end-h"><span class="hint">${SEASONS[S.season].n} · ${ERAS[S.era].n} · ${DIFFS[S.diff].n}</span>
+    <div class="end-name" id="end-h">${esc(e.n)}</div><p style="margin:0">${esc(e.d)}</p>
+    ${ep.length ? `<ul class="lines">${ep.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+    <p class="hint" style="margin:0">생존 ${headcount()}명 · 마지막 신뢰 ${avgTrust()} · 남은 연료 ${S.fuel}L · 식수 ${S.water}</p>
+    <canvas id="chart" width="360" height="120"></canvas><div class="legend"><span><i style="background:#f2a65a"></i>신뢰</span><span><i style="background:#8dbdf2"></i>식수 일수 ×10</span><span><i style="background:#8fd8a2"></i>연료</span></div>
+    ${S.unlocked && S.unlocked.length ? `<p style="margin:0"><b class="good">해금</b> ${esc(S.unlocked.join(' · '))}</p>` : ''}
+    <p class="hint" style="margin:0">엔딩 도감 ${Object.keys(ENDINGS).map(k => META.endings[k] ? ENDINGS[k].n : '???').join(' · ')}</p>
+    <div class="row"><button class="btn" data-act="setup">새 항해</button><button class="btn ghost" data-act="lobby">로비로</button>${S.f.rewinds > 0 && snaps.length ? `<button class="btn ghost" data-act="rewind">오늘 아침부터 다시 (${S.f.rewinds >= 99 ? '무제한' : S.f.rewinds + '회'})</button>` : ''}</div></div>`;
+  m.hidden = false; drawChart($('#chart'), S.hist);
+}
+/* ============================ LOBBY ============================ */
+const UNLOCKS = [
+  {kind:'seasons', id:'drought', n:'계절 ‘가뭄’', how:'어떤 설정으로든 함대에 한 번 합류하기', d:'비가 오지 않는다. 물이 가장 귀하다.'},
+  {kind:'eras', id:'mid', n:'시점 ‘중기 · 3개월 후’', how:'새벽 엔딩 한 번 보기 (아무도 잃지 않고, 신뢰 70 이상으로 합류)', d:'보급이 줄고, 임신한 생존자가 함께 탄다.'},
+  {kind:'seasons', id:'cold', n:'계절 ‘한파’', how:'가뭄에서 함대에 합류하기', d:'강이 얼어 좀비가 건너온다.'},
+  {kind:'eras', id:'late', n:'시점 ‘후기 · 1년 후’', how:'중기에서 함대에 합류하기', d:'좀비보다 사람이 더 무섭다.'}
+];
+const END_HINT = {
+  dawn:'아무도 잃지 않고, 배의 신뢰 70 이상으로 함대에 합류한다.',
+  fleet:'Day 7 새벽 4시까지 행주에 닿아 함대에 합류한다.',
+  drift:'함대를 놓친다.',
+  sink:'선체가 부서지거나 모두를 잃는다.'
+};
+let tickerT = null;
+function lobbyOn(html){
+  document.body.classList.add('lobby');
+  $('#modal').hidden = true;
+  const L = $('#lobby'); L.innerHTML = html; L.hidden = false; sceneDirty = true;
+  L.scrollTop = 0;
+}
+function lobbyOff(){ document.body.classList.remove('lobby'); $('#lobby').hidden = true; if(tickerT){ clearInterval(tickerT); tickerT = null; } sizeCanvas(); }
+function showLobby(){
+  const sv = LS.get(SAVE_KEY, null);
+  const seen = Object.keys(META.endings).length;
+  lobbyOn(`<div class="lobby-in">
+    <p class="kicker">감염 9일째 · 서울 잠실 선착장</p>
+    <h1 class="ttl">한강<span>표류선</span></h1>
+    <p class="lede">좀비는 물을 건너지 못한다. 7일 뒤 새벽 4시, 행주대교 하류에서 마지막 구조 함대가 떠난다. 낡은 유람선 한 척과 여덟 명의 사람으로 그곳까지 내려가야 한다.</p>
+    <nav class="menu" aria-label="메인 메뉴">
+      <button data-act="setup">새 항해</button>
+      ${sv && sv.S ? `<button data-act="continue">이어하기 <small>Day ${sv.S.day} · ${esc(LOCS[sv.S.loc].name)}</small></button>` : ''}
+      <button data-act="records">기록과 해금 <small>엔딩 ${seen}/4</small></button>
+      <button data-act="help">처음 하는 법</button>
+      <button data-act="resetAsk">초기화</button>
+    </nav>
+    <p class="ticker" id="ticker" aria-live="off"></p>
+  </div>`);
+  startTicker();
+}
+function startTicker(){
+  const el = $('#ticker'); if(!el) return;
+  const msgs = ['라디오 — ' + RADIO[0], '라디오 — “한강 하류 감염자 밀도 낮음. 다리 아래를 조심하라.”', '라디오 — “생존자 여러분, 물가로 이동하십시오. 감염자는 물을 건너지 못합니다.”'];
+  let m = 0, i = 0;
+  if(RM){ el.textContent = msgs[0]; return; }
+  if(tickerT) clearInterval(tickerT);
+  tickerT = setInterval(() => { const s = msgs[m]; i++; el.textContent = s.slice(0, i); if(i > s.length + 40){ i = 0; m = (m + 1) % msgs.length; } }, 55);
+}
+function showSetup(){
+  if(tickerT){ clearInterval(tickerT); tickerT = null; }
+  const first = !META.played;
+  if(first && !opts.touched) opts.diff = 'story';
+  const pick = (key, id, name, desc, extra, locked, lockline) => `<button class="pk${opts[key] === id ? ' on' : ''}" data-act="opt" data-arg="${key}|${id}" ${locked ? 'disabled' : ''} aria-pressed="${opts[key] === id}"><b>${esc(name)}</b><span>${esc(desc)}</span>${extra ? `<em>${esc(extra)}</em>` : ''}${locked ? `<span class="lockline">잠김 — ${esc(lockline)}</span>` : ''}</button>`;
+  const ul = (kind, id) => UNLOCKS.find(u => u.kind === kind && u.id === id);
+  const sLocked = id => !META.seasons.includes(id), eLocked = id => !META.eras.includes(id);
+  const anyOpen = META.seasons.length > 1 || META.eras.length > 1;
+  lobbyOn(`<div class="sheet">
+    <p class="kicker">출항 준비</p>
+    <h2>어떤 항해를 할까요</h2>
+    <h4>난이도</h4>
+    <div class="picks">
+      ${pick('diff','story','이야기','하루를 몇 번이든 되돌릴 수 있다. 위기 때 강이 잠시 조용해진다.', first ? '처음이라면 추천' : '', false)}
+      ${pick('diff','normal','표준','하루 되돌리기 2번. 위기 보정이 있다.', '', false)}
+      ${pick('diff','survival','생존','되돌리기도, 위기 보정도 없다.', '', false)}
+    </div>
+    <h4>항해 조건</h4>
+    ${anyOpen ? '' : `<p class="hint" style="margin:0">첫 항해는 ‘장마 · 초기’로 떠납니다. 함대에 합류할 때마다 새로운 계절과 시점이 열리고, 같은 한강이 전혀 다른 여정이 됩니다.</p>`}
+    <div class="picks">
+      ${pick('season','monsoon','장마', SEASONS.monsoon.d, '기본', false)}
+      ${pick('season','drought','가뭄', SEASONS.drought.d, '', sLocked('drought'), ul('seasons','drought').how)}
+      ${pick('season','cold','한파', SEASONS.cold.d, '', sLocked('cold'), ul('seasons','cold').how)}
+    </div>
+    <div class="picks">
+      ${pick('era','early','초기 · 감염 9일째','보급이 아직 남아 있다. 도움을 청하는 사람이 많다.', '기본', false)}
+      ${pick('era','mid','중기 · 3개월 후', ul('eras','mid').d, '', eLocked('mid'), ul('eras','mid').how)}
+      ${pick('era','late','후기 · 1년 후', ul('eras','late').d, '', eLocked('late'), ul('eras','late').how)}
+    </div>
+    <div class="row"><button class="btn" data-act="start">출항한다</button><button class="btn ghost" data-act="lobby">뒤로</button></div>
+  </div>`);
+}
+function showRecords(){
+  const rows = Object.keys(ENDINGS).map(k => `<tr><td><b>${META.endings[k] ? esc(ENDINGS[k].n) : '???'}</b></td><td>${esc(END_HINT[k])}</td><td>${META.endings[k] ? META.endings[k] + '회' : '아직'}</td></tr>`).join('');
+  const ul = UNLOCKS.map(u => { const done = META[u.kind].includes(u.id); return `<tr><td><b>${done ? '✓ ' : ''}${esc(u.n)}</b><br><span class="hint">${esc(u.d)}</span></td><td>${esc(u.how)}</td><td class="${done ? 'good' : ''}">${done ? '열림' : '잠김'}</td></tr>`; }).join('');
+  lobbyOn(`<div class="sheet">
+    <p class="kicker">기록과 해금</p><h2>항해 기록</h2>
+    <h4>엔딩 도감</h4>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th>엔딩</th><th>조건</th><th>본 횟수</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <h4>새로 열리는 조건</h4>
+    <p class="hint" style="margin:0">해금은 순서대로 열린다. 함대에 합류할 때마다 다음 조건이 하나씩 풀린다.${META.driftBonus ? ' · 지난 항해 실패 보너스: 다음 출항 연료 +5L' : ''}</p>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th>모드</th><th>여는 방법</th><th>상태</th></tr></thead><tbody>${ul}</tbody></table></div>
+    <div class="row"><button class="btn ghost" data-act="lobby">뒤로</button><button class="btn ghost danger" data-act="resetAsk">초기화…</button></div>
+  </div>`);
+}
+function showReset(done){
+  const sv = LS.get(SAVE_KEY, null), seen = Object.keys(META.endings).length, opened = META.seasons.length + META.eras.length - 2;
+  lobbyOn(`<div class="sheet">
+    <p class="kicker">초기화</p><h2>무엇을 지울까요</h2>
+    ${done ? `<p class="good" role="status" style="margin:0">${esc(done)}</p>` : ''}
+    <div class="picks">
+      <button class="pk" data-act="resetSave" ${sv && sv.S ? '' : 'disabled'}><b>진행 중인 항해만 지우기</b><span>${sv && sv.S ? `저장된 Day ${sv.S.day} · ${esc(LOCS[sv.S.loc].name)} 항해를 지운다. 엔딩 기록과 해금은 남는다.` : '지울 항해가 없다.'}</span></button>
+      <button class="pk" data-act="resetAll"><b>전체 초기화</b><span>진행 중인 항해, 엔딩 도감(${seen}/4), 해금된 계절·시점(${opened}개)을 모두 지우고 처음 상태로 돌아간다. 되돌릴 수 없다.</span><em>처음부터 다시 하기</em></button>
+    </div>
+    <div class="row"><button class="btn ghost" data-act="lobby">로비로</button></div>
+  </div>`);
+}
+function showHelp(){
+  lobbyOn(`<div class="sheet">
+    <p class="kicker">처음 하는 법</p><h2>하루는 이렇게 흐른다</h2>
+    <ol class="lines" style="list-style:none">
+      <li><b>아침</b> — 라디오와 함께 사건 카드가 나온다. A·B·C 중 하나를 고른다. 초록 태그는 얻는 것, 빨강은 잃는 것, 파랑은 위험이다.</li>
+      <li><b>역할 배치</b> — 생존자마다 상륙조·경계·기관·조타·물 관리·휴식 중 하나를 맡긴다. 배 그림에서 그 사람이 맡은 방에 선다.</li>
+      <li><b>항로</b> — 다음 정박지로 가면 좀비 접근도가 0이 되지만 연료가 든다. 머무르면 연료를 아끼지만 접근도가 쌓인다.</li>
+      <li><b>상륙</b> — 오래 머물수록 많이 얻고, 오늘 밤 습격 확률이 오른다.</li>
+      <li><b>밤</b> — 정박할지, 연료 2L로 강 한가운데 닻을 내릴지 정한다. 결산에서 무슨 일이 왜 일어났는지 보여준다.</li>
+    </ol>
+    <h4>세 가지를 지킨다</h4>
+    <ul class="lines">
+      <li><b>식수</b> — 사람 수로 나눈 ‘며칠분’이 중요하다. 사람을 태우면 같은 물이라도 빨리 줄어든다.</li>
+      <li><b>연료</b> — 화면 오른쪽 위 ‘행주까지 연료’보다 보유 연료가 많아야 한다.</li>
+      <li><b>신뢰</b> — 70을 넘으면 배가 하나로 움직이고(효율 +20%, 특별 선택지), 30 아래로 떨어진 사람은 떠난다.</li>
+    </ul>
+    <p class="hint" style="margin:0">한 번의 실수로 끝나지 않는다. 치명적인 순간 직전에는 한 번 ‘마지막 기회’가 온다.</p>
+    <div class="row"><button class="btn" data-act="setup">새 항해</button><button class="btn ghost" data-act="lobby">뒤로</button></div>
+  </div>`);
+}
+const TIPS = {
+  morning:'카드마다 초록(얻는 것)·빨강(잃는 것)·파랑(위험) 태그가 붙어 있다. 흐리게 잠긴 선택지는 도구나 신뢰 조건을 채우면 열린다.',
+  assign:'상륙조 2명(건강 70 이상), 경계 2명, 기관·조타 1명은 꼭 두자. 강태오를 기관·조타에 두면 구간마다 연료 2L를 아낀다. 장면 아래 생존자 줄에 각자 맡은 일이 표시된다.',
+  route:'이동하면 접근도가 0이 되지만 연료가 든다. 오른쪽 위 ‘행주까지 연료’가 보유 연료보다 커지지 않게 관리하자.',
+  landing:'오래 상륙할수록 많이 얻지만 오늘 밤 습격 확률이 오른다. 상륙조가 2명 이상이면 보급이 늘어난다.',
+  night:'습격 확률이 높으면 ‘강 한가운데 닻’을 쓰자. 연료 2L로 접근도를 크게 낮춘다.',
+  result:'▼는 잃은 것, ▲는 얻은 것, ◆는 아슬아슬했던 순간이다.'
+};
+const tipHtml = phase => (S && S.tut && S.day <= 2 && TIPS[phase]) ? `<div class="tip"><b>처음이라면</b>${esc(TIPS[phase])}</div>` : '';
+
+/* ============================ INPUT ============================ */
+function act(a, arg){
+  switch(a){
+    case 'ev': chooseEvent(arg); break;
+    case 'toAssign': toAssign(); break;
+    case 'role': { const [id, r] = arg.split('|'); setRole(id, r); break; }
+    case 'toRoute': toRoute(); break;
+    case 'route': route(arg); break;
+    case 'land': land(arg); break;
+    case 'moor': S.anchor = arg === 'anchor'; render(); break;
+    case 'boil': S.boil = Math.max(0, S.boil + Number(arg)); render(); break;
+    case 'lights': S.lights = !S.lights; render(); break;
+    case 'build': build(arg); break;
+    case 'settle': settle(); break;
+    case 'next': nextDay(); break;
+    case 'final': resolveFinal(); break;
+    case 'lc': doLastChance(arg); break;
+    case 'crew': openCrew(); break;
+    case 'log': openLog(); break;
+    case 'menu': openMenu(); break;
+    case 'med': useMed(arg); break;
+    case 'close': $('#modal').hidden = true; break;
+    case 'rewind': rewind(); break;
+    case 'showEnding': showEnding(); break;
+    case 'lobby': case 'toTitle': save(); showLobby(); break;
+    case 'setup': showSetup(); break;
+    case 'records': showRecords(); break;
+    case 'resetAsk': showReset(); break;
+    case 'resetSave': LS.del(SAVE_KEY); S = null; snaps = []; showReset('진행 중인 항해를 지웠다.'); break;
+    case 'resetAll': if(!resetArm){ resetArm = true; const b = document.querySelector('[data-act="resetAll"] em'); if(b) b.textContent = '한 번 더 누르면 모두 지워집니다'; setTimeout(() => { resetArm = false; }, 4000); break; }
+      resetArm = false; LS.del(SAVE_KEY); LS.del(META_KEY); META = {seasons:['monsoon'], eras:['early'], endings:{}, driftBonus:false}; S = null; snaps = []; opts = {season:'monsoon', era:'early', diff:'normal'}; showReset('모든 기록을 지웠다. 첫 항해 상태로 돌아갔다.'); break;
+    case 'abandonAsk': { const bx = $('#abandonBox'); if(bx) bx.hidden = false; break; }
+    case 'abandonNo': { const bx = $('#abandonBox'); if(bx) bx.hidden = true; break; }
+    case 'abandon': LS.del(SAVE_KEY); S = null; snaps = []; $('#modal').hidden = true; showSetup(); break;
+    case 'help': showHelp(); break;
+    case 'opt': { const [k, v] = arg.split('|'); opts[k] = v; opts.touched = true; showSetup(); break; }
+    case 'start': lobbyOff(); newGame(opts); break;
+    case 'continue': { const sv = LS.get(SAVE_KEY, null); if(sv && sv.S){ S = sv.S; snaps = sv.snaps || []; opts = sv.opts || opts; lobbyOff(); render(true); } break; }
+  }
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if(!b || b.disabled) return; act(b.dataset.act, b.dataset.arg); });
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  if(!$('#modal').hidden && !$('#modal').querySelector('[data-act="lc"]')){ $('#modal').hidden = true; return; }
+  if(!$('#lobby').hidden && !$('#lobby .lobby-in')) showLobby();
+});
+
+/* ============================ ART ============================ */
+const W = 384, H = 216, HOR = 124;
+const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cv = $('#cv'), g = cv.getContext('2d');
+let K = 3;
+function sizeCanvas(){
+  const w = (cv.clientWidth || 960) * (window.devicePixelRatio || 1);
+  const k = clamp(Math.round(w / W), 2, 4);
+  if(k !== K || cv.width !== W*k){ K = k; cv.width = W*K; cv.height = H*K; STATIC = null; SHIP = null; shipKey = ''; sceneKey = ''; GRAIN = null; }
+  sceneDirty = true;
+}
+function mkC(w, h){ const c = document.createElement('canvas'); c.width = Math.ceil(w*K); c.height = Math.ceil(h*K); const x = c.getContext('2d'); x.setTransform(K,0,0,K,0,0); return [c, x]; }
+function put(x, c, dx, dy, sc){ sc = sc || 1; x.drawImage(c, dx, dy, c.width/K*sc, c.height/K*sc); }
+const hex = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+const rgba = (h, a) => { const [r,gg,b] = hex(h); return `rgba(${r},${gg},${b},${a})`; };
+function seeded(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function mix(a, b, t){ const A = hex(a), B = hex(b); return '#' + A.map((v,i) => Math.round(v + (B[i]-v)*t).toString(16).padStart(2,'0')).join(''); }
+/* Golden-hour ruin palette: hazy low sun, overgrown concrete, gold-lit river */
+const PAL = {
+  dawn:{ sky:[['#3b332c',0],['#5c4c3e',.24],['#8a7056',.46],['#c39a68',.66],['#e7bf7e',.83],['#f8e0a6',1]],
+    far:'#9a8466', far2:'#76634e', near:'#3a3027', nearDark:'#211b15', rim:'#f2c57c', moss:'#3a3c24', moss2:'#4c5030', bank:'#1d1914',
+    cloud:'#9a7e5c', cloudLit:'#f6daa0', smoke:'#6a5a4a', smokeLit:'#9a7a58', water:['#57482f','#15120d'], haze:'#ecc78c', sun:'#fff3c8',
+    grade:'rgba(255,196,120,.07)', glint:'#ffe9ac', crowd:'#2a221a', dust:'#f6e0b0' },
+  night:{ sky:[['#0c0e15',0],['#181a24',.35],['#2a272b',.62],['#553e30',.85],['#875a36',1]],
+    far:'#3c3536', far2:'#2d2829', near:'#15120f', nearDark:'#0c0a08', rim:'#9a6238', moss:'#1f2318', moss2:'#2a2f1e', bank:'#0a0907',
+    cloud:'#28262a', cloudLit:'#6a4a34', smoke:'#1e1c1c', smokeLit:'#3a2a20', water:['#211d1a','#060605'], haze:'#7a5a40', sun:'#c88a52',
+    grade:'rgba(30,20,10,.14)', glint:'#e8a868', crowd:'#0a0807', dust:'#b09070' }
+};
+function greyify(p){ const q = clone(p); const G = '#5c5a56'; q.sky = q.sky.map(([c,s]) => [mix(c, G, .5), s]); q.haze = mix(q.haze, G, .55); q.cloudLit = mix(q.cloudLit, G, .6); q.sun = mix(q.sun, G, .5); q.far = mix(q.far, G, .3); return q; }
+function disc(x, cx, cy, r, col){ x.fillStyle = col; x.beginPath(); x.arc(cx, cy, Math.max(.2, r), 0, Math.PI*2); x.fill(); }
+function ell(x, cx, cy, rx, ry, col){ x.fillStyle = col; x.beginPath(); x.ellipse(cx, cy, Math.max(.2, rx), Math.max(.2, ry), 0, 0, Math.PI*2); x.fill(); }
+function glow(x, cx, cy, r, col, a){ const gr = x.createRadialGradient(cx, cy, 0, cx, cy, r); gr.addColorStop(0, rgba(col, a)); gr.addColorStop(1, rgba(col, 0)); x.fillStyle = gr; x.fillRect(cx - r, cy - r, r*2, r*2); }
+function rrect(x, rx, ry, w, h, r, col){ x.fillStyle = col; x.beginPath(); if(x.roundRect) x.roundRect(rx, ry, w, h, r); else x.rect(rx, ry, w, h); x.fill(); }
+function noiseC(w, h, cell, seed, lo, hi){
+  const r = seeded(seed), nw = Math.ceil(w/cell), nh = Math.ceil(h/cell);
+  const c = document.createElement('canvas'); c.width = nw; c.height = nh; const x = c.getContext('2d'); const img = x.createImageData(nw, nh);
+  for(let i = 0; i < nw*nh; i++){ const v = lo + r()*(hi - lo); img.data[i*4] = v; img.data[i*4+1] = v*.97; img.data[i*4+2] = v*.9; img.data[i*4+3] = 255; }
+  x.putImageData(img, 0, 0); return c;
+}
+function grime(x, x0, y0, w, h, seed, strength){
+  x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = strength; x.imageSmoothingEnabled = true;
+  x.drawImage(noiseC(w, h, 3, seed, 140, 255), x0, y0, w, h);
+  x.globalAlpha = strength*.6; x.drawImage(noiseC(w, h, 1, seed + 7, 165, 255), x0, y0, w, h);
+  x.restore();
+}
+/* overgrowth: moss clumps and hanging vines on a shape */
+function overgrow(c, r, x0, y0, w, h, P, amount){
+  for(let i = 0; i < w*amount*1.1; i++){ const mx = x0 + r()*w, my = y0 + Math.pow(r(), 2.6)*h; ell(c, mx, my, .4 + r()*1.5, .3 + r()*.8, rgba(r() < .6 ? P.moss : P.moss2, .55 + r()*.35)); }
+  c.strokeStyle = P.moss; c.lineWidth = .35;
+  for(let i = 0; i < w*amount*.25; i++){ const vx = x0 + r()*w, vl = 3 + r()*h*.35; c.beginPath(); c.moveTo(vx, y0 + r()*2); c.quadraticCurveTo(vx + (r() - .5)*2, y0 + vl*.5, vx + (r() - .5)*1.5, y0 + vl); c.stroke(); }
+}
+function bld(x, r, bx, base, w, h, o, fires){
+  const top = 14, [t, c] = mkC(w + 8, h + top + 2);
+  c.fillStyle = o.col; c.fillRect(4, top, w, h);
+  if(r() < .3) c.fillRect(4 + Math.floor(w*.25), top - 3, Math.max(2, Math.floor(w*.3)), 3);
+  if(r() < .22){ c.save(); c.translate(4 + w*.6, top); c.rotate((r() - .5)*.5); c.fillRect(0, -11, .45, 11); c.fillRect(-2, -9, 4, .3); c.restore(); }
+  for(let y = top + 3; y < top + h - 2; y += o.wy){ for(let xx = 6; xx < w + 2; xx += o.wx){ c.fillStyle = r() < o.litP ? '#f0b060' : (r() < .65 ? o.win : rgba('#000000', .45)); c.fillRect(xx, y, 1, o.wh); } }
+  // light from the sun side
+  const sunRight = bx + w/2 < o.sunX;
+  const rg = c.createLinearGradient(sunRight ? 4 + w - 4 : 4, 0, sunRight ? 4 + w : 8, 0);
+  rg.addColorStop(sunRight ? 0 : 1, rgba(o.rim, 0)); rg.addColorStop(sunRight ? 1 : 0, rgba(o.rim, o.rimA));
+  c.fillStyle = rg; c.fillRect(sunRight ? 4 + w - 4 : 4, top, 4, h);
+  if(o.graffiti && r() < .4){ const gx = 6 + r()*(w - 8), gy = top + h*(.6 + r()*.3); ['#9a5a3a','#5a7a7a','#8a7a4a'].forEach((gc, k) => { c.fillStyle = rgba(gc, .55); c.fillRect(gx + k*1.6, gy + (r() - .5), 1.8 + r()*2, 1 + r()); }); }
+  c.fillStyle = 'rgba(0,0,0,.22)'; for(let k = 0; k < Math.floor(w/5); k++){ const sx = 4 + r()*w; c.fillRect(sx, top + r()*h*.3, .5 + r()*.6, h*(.2 + r()*.5)); }
+  c.globalCompositeOperation = 'destination-out';
+  let firePt = null;
+  if(r() < o.damage){
+    const type = Math.floor(r()*5);
+    if(type === 0){ for(let xx = 0; xx < w; xx += 1.3){ const dd = r()*Math.min(h*.4, 18); c.fillRect(4 + xx, 0, 1.4, top + dd); } firePt = [Math.floor(w*r()), top + 8]; }
+    else if(type === 1){ const s = Math.floor(h*(.25 + r()*.4)); c.beginPath(); if(r() < .5){ c.moveTo(0,0); c.lineTo(w + 8, 0); c.lineTo(w + 8, top + s); c.lineTo(0, top + 1); } else { c.moveTo(w + 8, 0); c.lineTo(0, 0); c.lineTo(0, top + s); c.lineTo(w + 8, top + 1); } c.closePath(); c.fill(); firePt = [Math.floor(w*.5), top + Math.floor(s*.5) + 2]; }
+    else if(type === 2 || type === 4){ const n = type === 4 ? 2 : 1; for(let q = 0; q < n; q++){ const hw = Math.max(4, Math.floor(w*(.3 + r()*.4))), hh = Math.max(5, Math.floor(h*(.12 + r()*.22))), hx = 4 + Math.floor(r()*Math.max(1, w - hw)), hy = top + 4 + Math.floor(r()*h*.55);
+      c.beginPath(); c.moveTo(hx, hy + r()*3); c.lineTo(hx + hw*.5, hy - r()*2); c.lineTo(hx + hw, hy + r()*3); c.lineTo(hx + hw - r()*2, hy + hh); c.lineTo(hx + r()*2, hy + hh); c.closePath(); c.fill();
+      c.globalCompositeOperation = 'source-over'; c.fillStyle = o.beam; for(let yy = hy + 2; yy < hy + hh; yy += 3) c.fillRect(hx, yy, hw, .55); c.fillRect(hx + hw*.33, hy, .5, hh); c.fillRect(hx + hw*.66, hy, .5, hh); c.globalCompositeOperation = 'destination-out';
+      if(!firePt) firePt = [hx - 4 + Math.floor(hw/2), hy + hh - 1]; } }
+    else { const cw = Math.floor(w*(.3 + r()*.45)), ch = Math.floor(h*(.25 + r()*.4)), side = r() < .5; c.beginPath(); if(side){ c.moveTo(0,0); c.lineTo(cw + 4, 0); c.lineTo(cw*.6, top + ch); c.lineTo(0, top + ch*.8); } else { c.moveTo(w + 8, 0); c.lineTo(w + 4 - cw, 0); c.lineTo(w + 4 - cw*.6, top + ch); c.lineTo(w + 8, top + ch*.8); } c.closePath(); c.fill(); firePt = [side ? cw*.5 : w - cw*.5, top + ch*.8]; }
+  }
+  c.globalCompositeOperation = 'source-atop';
+  if(o.overgrow) overgrow(c, r, 4, top, w, h, o.P, o.overgrow);
+  c.globalCompositeOperation = 'source-over';
+  put(x, t, bx - 4, base - top - h);
+  if(firePt && fires && r() < o.fireP) fires.push({x: bx + firePt[0], y: base - h + (firePt[1] - top), s: 1, ph: r()*6});
+}
+function city(x, r, base, o, fires, only){ let cx = -10; while(cx < W + 10){ const w = o.wmin + Math.floor(r()*(o.wmax - o.wmin)), h = o.hmin + Math.floor(r()*(o.hmax - o.hmin)); if(!only || only(cx, w)) bld(x, r, cx, base, w, h, o, fires); cx += w + Math.floor(r()*o.gap) - o.overlap; } }
+let STATIC = null, sceneKey = '', sceneDirty = true, GRAIN = null;
+const SMOKE = [], EMBERS = [], ASH = [], DEBRIS = [];
+function truss(x, x0, x1, y, h, col){
+  x.fillStyle = col; x.fillRect(x0, y, x1 - x0, 1.2); x.fillRect(x0, y - h, x1 - x0, .8);
+  x.strokeStyle = col; x.lineWidth = .45; x.beginPath();
+  for(let xx = x0; xx < x1; xx += h){ x.moveTo(xx, y); x.lineTo(Math.min(x1, xx + h/2), y - h); x.lineTo(Math.min(x1, xx + h), y); x.moveTo(xx, y); x.lineTo(xx, y - h); }
+  x.stroke();
+}
+function buildStatic(loc, tod, wxk){
+  const W2 = WX[wxk] || WX.clear; let P = PAL[tod]; if(W2.grey) P = greyify(P);
+  const r = seeded(1000 + loc*97 + 13);
+  const sunX = 150 + ((loc*53) % 110), sunY = HOR - 46;
+  const [stat, x] = mkC(W, HOR + 6);
+  const sg = x.createLinearGradient(0, 0, 0, HOR); P.sky.forEach(([c,p]) => sg.addColorStop(p, c)); x.fillStyle = sg; x.fillRect(0, 0, W, HOR + 6);
+  // sun bloom + cloud bands lit from the sun
+  glow(x, sunX, sunY, 190, P.haze, W2.grey ? .3 : .6);
+  if(tod === 'dawn' && !W2.grey){ glow(x, sunX, sunY, 80, P.sun, .8); glow(x, sunX, sunY, 22, '#ffffff', .95); disc(x, sunX, sunY, 6, '#fffbe8'); }
+  const rc = seeded(300 + loc);
+  for(let i = 0; i < (W2.grey ? 46 : 30); i++){
+    const cx = rc()*W*1.2 - 30, cy = 6 + Math.pow(rc(), 1.3)*72, rx = 20 + rc()*46, ry = 2 + rc()*6;
+    const near = clamp(1 - Math.hypot(cx - sunX, (cy - sunY)*1.8)/220, 0, 1);
+    const col = mix(P.cloud, P.cloudLit, near*.9);
+    ell(x, cx, cy + ry*.6, rx, ry, rgba(mix(col, P.cloudLit, .5), .35*near + .05));
+    ell(x, cx, cy, rx, ry, rgba(col, .55));
+  }
+  if(tod === 'dawn' && !W2.grey){ x.save(); x.globalCompositeOperation = 'lighter'; for(let k = 0; k < 9; k++){ const a = -Math.PI + .25 + k*(Math.PI - .5)/8 + (rc() - .5)*.12; x.fillStyle = rgba(P.sun, .035 + rc()*.03); x.beginPath(); x.moveTo(sunX, sunY); x.lineTo(sunX + Math.cos(a - .04)*320, sunY + Math.sin(a - .04)*320); x.lineTo(sunX + Math.cos(a + .04)*320, sunY + Math.sin(a + .04)*320); x.closePath(); x.fill(); } x.restore(); }
+  const fires = [];
+  // distant ruins: hazy, low contrast
+  city(x, r, HOR - 2, {P, col:P.far, win:mix(P.far, '#000000', .25), litP:0, wx:3, wy:4, wh:2, rim:P.rim, rimA:.35, sunX, beam:mix(P.far, '#000000', .3), damage:.8, fireP:.05, wmin:10, wmax:26, hmin:14, hmax:50, gap:5, overlap:2}, fires);
+  // landmark: a tall broken tower with a leaning mast
+  { const lx = sunX < 200 ? 300 : 70, lw = 14, lh = 92, [tc, tx] = mkC(lw + 4, lh + 22), o = 22;
+    tx.fillStyle = P.far2; tx.fillRect(0, o, lw, lh);
+    for(let yy = o + 4; yy < o + lh; yy += 4) for(let xx = 2; xx < lw - 1; xx += 3){ tx.fillStyle = r() < .5 ? mix(P.far2, '#000000', .3) : rgba('#000000', .3); tx.fillRect(xx, yy, 1, 2); }
+    tx.globalCompositeOperation = 'destination-out'; tx.beginPath(); tx.moveTo(-1, o - 1); tx.lineTo(lw + 4, o - 1); tx.lineTo(lw + 4, o + 16); tx.lineTo(-1, o + 4); tx.closePath(); tx.fill(); tx.fillRect(3, o + 30, 8, 10);
+    tx.globalCompositeOperation = 'source-over'; tx.strokeStyle = P.far2; tx.lineWidth = .5; tx.beginPath(); tx.moveTo(4, o + 4); tx.lineTo(9, 0); tx.moveTo(6, o + 2); tx.lineTo(10, 6); tx.moveTo(8, 2); tx.lineTo(4, 10); tx.stroke();
+    put(x, tc, lx, HOR - 2 - lh - o); }
+  // atmospheric haze over the distance
+  { const hz = x.createLinearGradient(0, HOR - 70, 0, HOR); hz.addColorStop(0, rgba(P.haze, 0)); hz.addColorStop(1, rgba(P.haze, W2.grey ? .35 : .45)); x.fillStyle = hz; x.fillRect(0, HOR - 70, W, 76); }
+  // mid ruins
+  city(x, r, HOR, {P, col:P.far2, win:mix(P.far2, '#000000', .35), litP:.004, wx:3, wy:4, wh:2, rim:P.rim, rimA:.5, sunX, beam:mix(P.far2, '#000000', .4), damage:.85, fireP:.12, overgrow:.8, wmin:10, wmax:26, hmin:10, hmax:40, gap:6, overlap:2}, fires);
+  if(LOCS[loc].wheel){ const wx0 = sunX < 200 ? 290 : 90, wy0 = HOR - 30, R = 22; x.strokeStyle = P.near; x.lineWidth = .6; x.beginPath(); x.arc(wx0, wy0, R, -1.2, 3.6); x.stroke(); for(let k = 0; k < 8; k++){ if(k === 5 || k === 6) continue; const a = k*Math.PI/4; x.beginPath(); x.moveTo(wx0, wy0); x.lineTo(wx0 + Math.cos(a)*R, wy0 + Math.sin(a)*R); x.stroke(); } x.fillStyle = P.near; x.save(); x.translate(wx0, wy0); x.rotate(.08); x.fillRect(-1, 0, 2, 30); x.restore(); overgrow(x, r, wx0 - 20, wy0 + 6, 40, 20, P, .4); }
+  { const hz = x.createLinearGradient(0, HOR - 40, 0, HOR); hz.addColorStop(0, rgba(P.haze, 0)); hz.addColorStop(1, rgba(P.haze, .22)); x.fillStyle = hz; x.fillRect(0, HOR - 40, W, 46); }
+  // power lines sagging across the sky
+  x.strokeStyle = rgba(P.nearDark, .85); x.lineWidth = .35;
+  for(let k = 0; k < 3; k++){ const y0 = 30 + k*4 + r()*6, y1 = 44 + k*5 + r()*10; x.beginPath(); x.moveTo(-5, y0); x.quadraticCurveTo(W*.45, y0 + 34 + k*4, W + 5, y1); x.stroke(); }
+  // truss bridge, rusted and overgrown
+  let bridge = null;
+  if(LOCS[loc].bridge || loc % 2 === 1){
+    const by = HOR - 30 - (loc % 3)*4; bridge = {y: by, gap:[sunX - 14 + Math.floor(r()*20), 0]}; bridge.gap[1] = bridge.gap[0] + 26;
+    truss(x, -4, bridge.gap[0], by, 7, P.near); truss(x, bridge.gap[1], W + 4, by, 7, P.near);
+    x.fillStyle = P.near; x.beginPath(); x.moveTo(bridge.gap[0], by); x.lineTo(bridge.gap[0] + 9, by + 14); x.lineTo(bridge.gap[0] + 6, by + 15); x.lineTo(bridge.gap[0] - 1, by + 1.2); x.fill();
+    for(let px = 40; px < W; px += 92){ if(px > bridge.gap[0] - 8 && px < bridge.gap[1] + 8) continue; x.fillStyle = P.near; x.fillRect(px, by + 1, 7, HOR - by); x.fillStyle = rgba(P.rim, .35); x.fillRect(px + (px < sunX ? 6 : 0), by + 1, 1, HOR - by); overgrow(x, r, px - 1, by + 1, 9, HOR - by, P, .5); }
+    overgrow(x, r, -4, by - 7, bridge.gap[0] + 4, 10, P, .5); overgrow(x, r, bridge.gap[1], by - 7, W - bridge.gap[1] + 4, 10, P, .5);
+    x.strokeStyle = P.moss; x.lineWidth = .4; for(let k = 0; k < 26; k++){ const vx = r()*W; if(vx > bridge.gap[0] && vx < bridge.gap[1]) continue; const vl = 3 + r()*14; x.beginPath(); x.moveTo(vx, by + 1); x.quadraticCurveTo(vx + 1, by + vl*.6, vx + (r() - .5)*2, by + vl); x.stroke(); }
+    for(let i = 0; i < 3; i++){ const cx3 = r()*W; if(cx3 > bridge.gap[0] - 6 && cx3 < bridge.gap[1] + 6) continue; rrect(x, cx3, by - 2.4, 6, 2.2, .7, P.nearDark); }
+  }
+  // near ruins framing both sides (dark, rim-lit, overgrown)
+  city(x, r, HOR + 1, {P, col:P.near, win:P.nearDark, litP:.003, wx:3, wy:4, wh:2, rim:P.rim, rimA:.75, sunX, beam:P.nearDark, damage:.8, fireP:.08, overgrow:1.4, graffiti:true, wmin:14, wmax:30, hmin:26, hmax:78, gap:4, overlap:2}, fires, (cx, w) => cx < 70 || cx + w > W - 70);
+  // bank: rubble, reeds
+  x.fillStyle = P.bank; x.fillRect(0, HOR - 1, W, 7);
+  for(let i = 0; i < 22; i++){ const rx0 = r()*W, rw = 5 + r()*14, hh = 1.5 + r()*3.5; x.fillStyle = P.bank; x.beginPath(); x.moveTo(rx0, HOR + 1); x.quadraticCurveTo(rx0 + rw*.4, HOR - hh*2, rx0 + rw, HOR + 1); x.fill(); }
+  x.strokeStyle = P.moss2; x.lineWidth = .3; for(let i = 0; i < 160; i++){ const rx0 = r()*W, rh = 1 + r()*4; x.beginPath(); x.moveTo(rx0, HOR + 1); x.lineTo(rx0 + (r() - .5)*1.4, HOR + 1 - rh); x.stroke(); }
+  const lamps = [];
+  for(let i = 0; i < 6; i++){ const cx2 = r()*W; x.save(); x.translate(cx2, HOR + 1); x.rotate((r() - .5)*.4); rrect(x, 0, -.5, 7, 2.4, .8, P.nearDark); rrect(x, 1.8, -1.6, 3.4, 1.4, .5, P.nearDark); x.restore(); overgrow(x, r, cx2, HOR - 1.6, 7, 3, P, .6); }
+  if(LOCS[loc].barricade){ x.fillStyle = P.nearDark; for(let bx = 20; bx < 120; bx += 4) x.fillRect(bx, HOR - 5 - (bx % 8 === 0 ? 1 : 0), 3, 6); x.fillStyle = '#7a2e22'; x.fillRect(70, HOR - 16, 6, 4); x.fillStyle = P.nearDark; x.fillRect(69, HOR - 16, .7, 12); fires.push({x:100, y:HOR - 4, s:2, ph:2}); lamps.push([100, HOR - 4]); }
+  if(LOCS[loc].tents){ for(let i = 0; i < 5; i++){ const tx2 = 30 + i*20; x.fillStyle = i % 2 ? '#2e3528' : '#3a2e26'; x.beginPath(); x.moveTo(tx2, HOR); x.lineTo(tx2 + 5.5 - (i === 2 ? 3 : 0), HOR - 5 + (i === 2 ? 2 : 0)); x.lineTo(tx2 + 11, HOR); x.fill(); } fires.push({x:60, y:HOR - 2, s:1, ph:3}); }
+  if(LOCS[loc].crowd && bridge){ /* zombies drawn live */ }
+  grime(x, 0, 0, W, HOR + 6, 40 + loc, .22);
+  const RH = H - HOR; const [refl, rx] = mkC(W, RH);
+  for(let i = 0; i < RH; i++){ const sy = HOR - 1 - Math.floor(i*1.1); if(sy < 0) break; rx.drawImage(stat, 0, sy*K, W*K, K, 0, i, W, 1); }
+  const [wat, wx2] = mkC(W, RH); const grd = wx2.createLinearGradient(0, 0, 0, RH); grd.addColorStop(0, P.water[0]); grd.addColorStop(1, P.water[1]); wx2.fillStyle = grd; wx2.fillRect(0, 0, W, RH);
+  glow(wx2, sunX, 0, 80, P.haze, W2.grey ? .15 : .35);
+  const [props, px2] = mkC(W, RH);
+  if(LOCS[loc].yachts){ for(let i = 0; i < 5; i++){ const yx = 8 + i*20, yy = 4 + (i % 2)*3; px2.save(); px2.translate(yx, yy); px2.rotate(i === 2 ? .45 : (i % 2 ? -.12 : .08)); px2.fillStyle = P.nearDark; px2.beginPath(); px2.moveTo(0, 0); px2.lineTo(15, 0); px2.lineTo(13, 3); px2.lineTo(1, 3); px2.fill(); px2.fillRect(3, -2, 7, 2); if(i !== 2) px2.fillRect(6, -14, .5, 12); px2.restore(); } }
+  if(bridge){ px2.fillStyle = P.near; for(let p2 = 40; p2 < W; p2 += 92){ if(p2 > bridge.gap[0] - 8 && p2 < bridge.gap[1] + 8) continue; px2.fillRect(p2, 0, 7, 8); } }
+  // foreground framing: mossy rocks and a broken concrete overhang
+  const [fore, fc] = mkC(W, H);
+  const rock = (cx, cy, rw, rh) => { fc.fillStyle = P.nearDark; fc.beginPath(); fc.moveTo(cx - rw, cy); fc.quadraticCurveTo(cx - rw*.8, cy - rh, cx - rw*.1, cy - rh*1.05); fc.quadraticCurveTo(cx + rw*.7, cy - rh*.9, cx + rw, cy); fc.closePath(); fc.fill(); overgrow(fc, r, cx - rw*.8, cy - rh, rw*1.6, rh*.5, P, 1.5); const rl = fc.createLinearGradient(cx - rw, 0, cx + rw, 0); rl.addColorStop(cx < sunX ? 1 : 0, rgba(P.rim, .28)); rl.addColorStop(cx < sunX ? 0 : 1, rgba(P.rim, 0)); fc.fillStyle = rl; fc.beginPath(); fc.ellipse(cx, cy - rh*.6, rw*.9, rh*.4, 0, 0, Math.PI*2); fc.fill(); };
+  rock(12, H + 2, 26, 18); rock(46, H + 4, 18, 10); rock(W - 10, H + 2, 30, 22); rock(W - 52, H + 6, 16, 9);
+  { const ox = W - 44, oy2 = 128; fc.fillStyle = P.nearDark; fc.beginPath(); fc.moveTo(ox - 6, oy2); fc.lineTo(W + 2, oy2 - 4); fc.lineTo(W + 2, oy2 + 5); fc.lineTo(ox - 4, oy2 + 4); fc.closePath(); fc.fill(); fc.fillRect(ox + 6, oy2 + 4, 4, H - oy2); fc.fillRect(ox + 28, oy2 + 3, 4, H - oy2);
+    fc.strokeStyle = P.nearDark; fc.lineWidth = .3; for(let k = 0; k < 6; k++){ fc.beginPath(); fc.moveTo(ox - 5 + k, oy2 + 2); fc.lineTo(ox - 7 + k*.8, oy2 + 5 + k); fc.stroke(); }
+    fc.fillStyle = rgba(P.rim, .5); fc.fillRect(ox - 6, oy2 - .4, W - ox + 8, .5);
+    overgrow(fc, r, ox - 6, oy2 - 1, W - ox + 8, 14, P, 1.6); }
+  SMOKE.length = 0; fires.slice(0, 4).forEach(f => { for(let k = 0; k < 10; k++) SMOKE.push({sx: f.x, sy: f.y - 2, t: k/10, sp: .02 + Math.random()*.02, big: 1}); });
+  EMBERS.length = 0;
+  ASH.length = 0; for(let i = 0; i < 70; i++) ASH.push({x: Math.random()*W, y: Math.random()*H, v: .02 + Math.random()*.05, d: Math.random()*6});
+  DEBRIS.length = 0; const rd = seeded(500 + loc); for(let i = 0; i < 4; i++) DEBRIS.push({x: rd()*W, y: HOR + 12 + rd()*60, w: 4 + rd()*8, kind: Math.floor(rd()*3), v: .02 + rd()*.04});
+  const [fog, fx] = mkC(W*2, H); const rf = seeded(9); for(let i = 0; i < 70; i++){ const fy = HOR - 40 + rf()*110, fw = 60 + rf()*160; ell(fx, rf()*W*2, fy, fw/2, 2 + rf()*6, rgba(P.haze, .05 + rf()*.06)); }
+  return {stat, refl, wat, props, fore, fires, lamps, bridge, P, fog, tod, sunX, grey: W2.grey, crowd: LOCS[loc].crowd};
+}
+function makeGrain(){
+  const frames = [];
+  const gw = Math.ceil(W*K/2), gh = Math.ceil(H*K/2);
+  for(let f = 0; f < 4; f++){ const c = document.createElement('canvas'); c.width = gw; c.height = gh; const x = c.getContext('2d'); const img = x.createImageData(gw, gh); for(let i = 0; i < gw*gh; i++){ const v = Math.random()*255; img.data[i*4] = v; img.data[i*4+1] = v; img.data[i*4+2] = v; img.data[i*4+3] = 11; } x.putImageData(img, 0, 0); frames.push(c); }
+  return frames;
+}
+/* ship & people (comic ink style) */
+/* ship & people — ink-outline comic style: angular shapes, flat colour + one cel-shadow tone */
+const SS = 1.16, SY = 101, WL = 66;
+const BODY = ['#c06a58','#5a84b8','#c8a05a','#5a9a74','#8a70b8','#c07c48','#4a9a9a','#a85a84','#7a8ab8','#b0a85a','#7a64b0','#5aa874','#c890a0','#90c0c0'];
+const colorOf = c => BODY[Math.max(0, S ? S.crew.indexOf(c) : 0) % BODY.length];
+const INK = '#17131a';
+const APP = {
+  tae:{skin:'#c99a74', hair:'#1e1a18', hs:'short', top:'#3a4a62', bottom:'#2e3a4e', boots:'#2a2420', extra:['stubble'], belt:true},
+  so:{skin:'#e0b896', hair:'#3a2620', hs:'pony', top:'#d8d2c4', inner:'#5c5c66', bottom:'#38384a', boots:'#2a2624', extra:['coat'], f:true},
+  du:{skin:'#b58460', hair:'#b4b0a6', hs:'cap', cap:'#3e4a38', top:'#6a5a3c', inner:'#4c4a44', bottom:'#3c342a', boots:'#2c241e', extra:['beard','vest'], old:true},
+  ga:{skin:'#e4ba96', hair:'#141216', hs:'bob', top:'#2e6280', bottom:'#24303e', boots:'#d8d4cc', f:true},
+  min:{skin:'#bb8e68', hair:'#141214', hs:'buzz', top:'#24242a', bottom:'#26262c', boots:'#1c1a1c', broad:true, extra:['scar']},
+  se:{skin:'#dcb290', hair:'#2c1e16', hs:'messy', top:'#5a4260', bottom:'#2c3242', boots:'#3a3434', extra:['glasses','camera']},
+  myeong:{skin:'#cfa080', hair:'#bdb6ac', hs:'perm', top:'#8a5848', bottom:'#4a3e38', boots:'#2c2622', extra:['apron'], old:true, f:true},
+  ha:{skin:'#e8c2a2', hair:'#161216', hs:'messy', top:'#c09234', bottom:'#2c3648', boots:'#3a3438', child:true},
+  woo:{skin:'#d0a482', hair:'#1e1a16', hs:'short', top:'#cec6b8', bottom:'#2e2e36', boots:'#201c1c', extra:['tie']},
+  nae:{skin:'#e2b896', hair:'#4c3222', hs:'long', top:'#a48a64', inner:'#5a4a40', bottom:'#3a3430', boots:'#2e2824', extra:['coat'], f:true},
+  yu:{skin:'#dcb08c', hair:'#221812', hs:'pony', top:'#3c3c44', inner:'#4a8686', bottom:'#4a8686', boots:'#e0dcd2', f:true, extra:['vest']},
+  sea:{skin:'#f0caa8', hair:'#1e1612', hs:'pig', top:'#d8b434', bottom:'#3c4c6c', boots:'#c83c30', child:true, f:true},
+  rin:{skin:'#e4bc9a', hair:'#2c1c14', hs:'long', top:'#ac96ac', bottom:'#4a4252', boots:'#2e2830', extra:['belly'], f:true},
+  baby:{baby:true}
+};
+const shade = (c, k) => mix(c, '#000000', k || .3);
+let SHIP = null, shipKey = '';
+const DUMMY = {up:{}, f:{}, water:30, fuel:40, hull:100, lights:false};
+function inkPoly(x, pts, fill, lw){
+  x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for(let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); x.closePath();
+  x.fillStyle = fill; x.fill(); if(lw !== 0){ x.lineWidth = lw || .45; x.strokeStyle = INK; x.lineJoin = 'miter'; x.stroke(); }
+}
+function shipLayer(night){
+  const s = S || DUMMY;
+  const k = [K, night, s.up.rain, s.up.fence, s.up.boat, s.up.filter, s.up.engine2, s.up.search, !!s.f.married, Math.ceil(s.water/6), Math.ceil(s.fuel/10), s.hull > 50, s.hull > 25, s.lights].join(',');
+  if(k === shipKey && SHIP) return SHIP; shipKey = k;
+  const [c, x] = mkC(240, 82);
+  x.translate(4, 2);
+  const lampA = night ? (s.lights ? .7 : .55) : .4;
+  const cream = '#d6c8ac', creamS = '#a8987c', creamD = '#8a7c64';
+  // mast with a torn white flag
+  x.fillStyle = INK; x.fillRect(99.4, -2, 1.2, 17);
+  inkPoly(x, [[100.6,-1.5],[109,-0.5],[107.5,1.5],[110,3.4],[104,3.8],[100.6,4.2]], '#e2dccc', .35);
+  // smokestack
+  inkPoly(x, [[61,15.5],[61,2],[71,1],[71,15.5]], '#5a4a3e'); x.fillStyle = '#8a3a2a'; x.fillRect(61.2, 4, 9.6, 2.2); x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(61.2, 2, 3, 13.5);
+  if(s.up.engine2) inkPoly(x, [[74,15.5],[74,6],[78,5.5],[78,15.5]], '#4a4238');
+  // upper cabin shell
+  inkPoly(x, [[32,37],[32,15],[154,15],[154,37]], cream);
+  inkPoly(x, [[29,15.6],[30,13.2],[156,13.2],[157,15.6]], '#b8a688', .4);
+  x.fillStyle = 'rgba(255,220,160,.35)'; x.fillRect(30, 13.3, 126, .5);
+  // cutaway: rest cabin
+  x.fillStyle = night ? '#5a3e3a' : '#4c3632'; x.fillRect(35, 17, 113, 19);
+  [52, 90, 128].forEach((lx, i) => { glow(x, lx, 19, 24, '#ffbe70', lampA*(i === 1 ? .75 : 1)); inkPoly(x, [[lx - 1.6,17],[lx + 1.6,17],[lx + 1,18.4],[lx - 1,18.4]], '#ffe2a8', .25); });
+  for(let wx3 = 40, i = 0; wx3 < 146; wx3 += 14, i++){ inkPoly(x, [[wx3,20],[wx3 + 8,20],[wx3 + 8,25.4],[wx3,25.4]], night ? '#1c1820' : '#6a5a4e', .3); if(i % 2 === 0){ x.save(); x.translate(wx3 + 4, 22.7); x.rotate(i % 4 ? .22 : -.18); inkPoly(x, [[-5,-.7],[5,-.7],[5,.7],[-5,.7]], '#6a4a32', .25); x.restore(); } }
+  for(let bx3 = 37; bx3 < 146; bx3 += 27){ inkPoly(x, [[bx3,30.6],[bx3 + 19,30.6],[bx3 + 19,33.2],[bx3,33.2]], '#5c3e36', .3); inkPoly(x, [[bx3 + 1,29.4],[bx3 + 13,29.6],[bx3 + 14,31],[bx3 + 1,31]], '#7a6a8a', .25); inkPoly(x, [[bx3 + 14.5,29.4],[bx3 + 18.4,29.4],[bx3 + 18.4,30.8],[bx3 + 14.5,30.8]], '#e0d6c6', .25); x.fillStyle = INK; x.fillRect(bx3 + 1, 33.2, .6, 2.6); x.fillRect(bx3 + 17.6, 33.2, .6, 2.6); }
+  x.fillStyle = '#3a2824'; x.fillRect(35, 35.8, 113, 1.2);
+  x.fillStyle = INK; x.fillRect(32.6, 15.4, 2.4, 21.6); x.fillRect(148, 15.4, 2.4, 21.6);
+  // lifebuoy on the cabin wall
+  const buoy = (bx, by, r) => { x.lineWidth = 1.3; x.strokeStyle = INK; x.beginPath(); x.arc(bx, by, r, 0, Math.PI*2); x.stroke(); x.lineWidth = .9; for(let q = 0; q < 4; q++){ x.strokeStyle = q % 2 ? '#e8e0d0' : '#d0602a'; x.beginPath(); x.arc(bx, by, r, q*Math.PI/2, (q + 1)*Math.PI/2); x.stroke(); } };
+  // wheelhouse
+  inkPoly(x, [[152,37],[152,5],[185,5],[185,37]], cream);
+  inkPoly(x, [[150,5.6],[151,3.2],[187,3.2],[188,5.6]], '#b8a688', .4);
+  x.fillStyle = night ? '#4a3c44' : '#3e3238'; x.fillRect(155, 8, 22, 28);
+  glow(x, 166, 10, 16, '#ffbe70', lampA*.9);
+  inkPoly(x, [[178,8.5],[184,8.5],[184,20],[178,20]], night ? '#1c1820' : '#c8925c', .35);
+  x.strokeStyle = 'rgba(255,240,220,.7)'; x.lineWidth = .25; x.beginPath(); x.moveTo(178.6, 10); x.lineTo(182, 15); x.lineTo(179.6, 19); x.stroke();
+  inkPoly(x, [[157,29],[166,29],[166,36],[157,36]], '#4a3a34', .3); x.strokeStyle = INK; x.lineWidth = .9; x.beginPath(); x.arc(171, 27, 2.8, 0, Math.PI*2); x.stroke(); x.strokeStyle = '#8a6a44'; x.lineWidth = .5; x.stroke(); for(let a = 0; a < 6; a++){ x.beginPath(); x.moveTo(171, 27); x.lineTo(171 + Math.cos(a)*2.8, 27 + Math.sin(a)*2.8); x.stroke(); }
+  x.fillStyle = INK; x.fillRect(154, 7, 1.4, 30);
+  buoy(160, 20.5, 2.4);
+  // roof: sandbags and rail
+  for(let sb = 34; sb < 152; sb += 4.4){ if(sb > 82 && sb < 114 && s.up.rain) continue; x.beginPath(); x.ellipse(sb, 12.1, 2.3, 1.25, 0, 0, Math.PI*2); x.fillStyle = '#7a6a4e'; x.fill(); x.lineWidth = .3; x.strokeStyle = INK; x.stroke(); x.fillStyle = 'rgba(0,0,0,.2)'; x.fillRect(sb - 2, 12.1, 4, .9); }
+  x.fillStyle = INK; x.fillRect(31, 10.4, 124, .45); for(let px3 = 31; px3 < 156; px3 += 6) x.fillRect(px3, 10.4, .45, 2.8);
+  if(s.up.fence){ x.strokeStyle = '#a8a4a0'; x.lineWidth = .35; x.beginPath(); for(let px3 = 31; px3 < 155; px3 += 1.4) x.lineTo(px3, 9 + (Math.round(px3/1.4) % 2)); x.stroke(); x.beginPath(); for(let px3 = 12; px3 < 200; px3 += 1.4) x.lineTo(px3, 35.4 + (Math.round(px3/1.4) % 2)*.9); x.stroke(); }
+  if(s.up.rain){ inkPoly(x, [[84,13.5],[98,5.6],[112,13.5]], '#3e5674', .4); x.fillStyle = 'rgba(255,255,255,.18)'; x.fillRect(98, 6.5, .5, 7); }
+  if(s.up.search){ inkPoly(x, [[159,-.5],[165,-.5],[165,2.8],[159,2.8]], '#d8d6d0', .35); x.fillStyle = INK; x.fillRect(161.6, 2.8, .7, 1); }
+  if(s.f.married){ const cols = ['#f2a65a','#d9708a','#92dba6','#8fc0f4']; x.strokeStyle = INK; x.lineWidth = .2; x.beginPath(); x.moveTo(33, 9.5); x.quadraticCurveTo(92, 12, 154, 9.5); x.stroke(); for(let px3 = 35, i = 0; px3 < 153; px3 += 3.4, i++){ disc(x, px3, 10 + Math.sin((px3 - 33)/121*Math.PI)*1.4, .55, cols[i % 4]); if(night) glow(x, px3, 10, 2.4, cols[i % 4], .35); } }
+  // hull: weathered cream with faded blue band and red boot-topping
+  const hull = () => { x.beginPath(); x.moveTo(12,37); x.lineTo(200,37); x.lineTo(222,41.5); x.lineTo(205,72); x.lineTo(24,72); x.lineTo(12,63); x.closePath(); };
+  hull(); const hg = x.createLinearGradient(0, 37, 0, 72); hg.addColorStop(0, cream); hg.addColorStop(.55, creamS); hg.addColorStop(1, creamD); x.fillStyle = hg; x.fill();
+  x.save(); hull(); x.clip();
+  x.fillStyle = '#3a5068'; x.fillRect(0, 46, 240, 2.6); x.fillStyle = 'rgba(255,255,255,.15)'; x.fillRect(0, 46, 240, .5);
+  x.fillStyle = s.hull > 50 ? '#7a3328' : '#5a2a22'; x.fillRect(0, 64, 240, 9);
+  const rr2 = seeded(42); for(let i = 0; i < 30; i++){ const rx2 = 12 + rr2()*205, ry2 = 38 + rr2()*24; x.fillStyle = rgba('#6a3a22', .25 + rr2()*.35); x.fillRect(rx2, ry2, .4 + rr2()*.6, 4 + rr2()*12); }
+  for(let pl = 154; pl < 208; pl += 12){ x.strokeStyle = 'rgba(40,30,20,.35)'; x.lineWidth = .3; x.strokeRect(pl, 39, 11, 7); }
+  // cutaway lower deck
+  x.fillStyle = '#08070a'; x.fillRect(21, 38.5, 130, 26.5);
+  x.fillStyle = night ? '#3a2c2a' : '#30242a'; x.fillRect(23, 40, 57, 23.4);
+  x.fillStyle = night ? '#382c2c' : '#2e2428'; x.fillRect(82, 40, 67, 23.4);
+  glow(x, 44, 42, 24, '#ffbe70', lampA*.85); glow(x, 112, 42, 28, '#ffbe70', lampA*.75);
+  inkPoly(x, [[42.4,40],[45.6,40],[45,41.3],[43,41.3]], '#ffe2a8', .25); inkPoly(x, [[110.4,40],[113.6,40],[113,41.3],[111,41.3]], '#ffe2a8', .25);
+  // engine block, pipes, gauges
+  inkPoly(x, [[48,63.4],[48,50],[74,50],[74,63.4]], '#5a4e4a', .45); x.fillStyle = 'rgba(0,0,0,.28)'; x.fillRect(48.3, 50.3, 8, 13);
+  for(let k2 = 0; k2 < 3; k2++) inkPoly(x, [[52 + k2*7,50],[52 + k2*7,46.5],[55 + k2*7,46.5],[55 + k2*7,50]], '#6a5e58', .3);
+  x.strokeStyle = INK; x.lineWidth = 1.1; x.beginPath(); x.moveTo(74, 53); x.lineTo(78, 53); x.lineTo(78, 41); x.stroke(); x.strokeStyle = '#8a6a50'; x.lineWidth = .6; x.stroke();
+  [[60,55,'#e07a3a'],[66,55,'#c8c070']].forEach(([gx, gy, gc]) => { disc(x, gx, gy, 1.5, INK); disc(x, gx, gy, 1.1, '#e8e0d0'); x.strokeStyle = gc; x.lineWidth = .3; x.beginPath(); x.moveTo(gx, gy); x.lineTo(gx + .8, gy - .6); x.stroke(); });
+  const drums = clamp(Math.ceil(s.fuel/10), 0, 6); for(let i = 0; i < drums; i++){ const dx = 24.5 + (i % 3)*4.4, dy = i < 3 ? 57 : 50.8; inkPoly(x, [[dx,dy + 6.2],[dx,dy],[dx + 3.8,dy],[dx + 3.8,dy + 6.2]], '#8a3a2c', .3); x.fillStyle = 'rgba(255,255,255,.18)'; x.fillRect(dx + .4, dy + 2, 3, .4); }
+  // storeroom: shelves, crates, water barrels
+  x.fillStyle = INK; x.fillRect(83, 48, 22, .8); x.fillRect(83, 55.5, 22, .8);
+  inkPoly(x, [[84,63.4],[84,57],[93,57],[93,63.4]], '#7a5a3a', .35); inkPoly(x, [[94,63.4],[94,58.6],[101,58.6],[101,63.4]], '#6a4c30', .35); inkPoly(x, [[85,55.5],[85,51],[92,51],[92,55.5]], '#8a6a44', .3); inkPoly(x, [[93.5,48],[93.5,44.4],[99,44.4],[99,48]], '#6a6a5a', .3);
+  const barrels = clamp(Math.ceil(s.water/6), 0, 12); for(let i = 0; i < barrels; i++){ const bx4 = 119 + (i % 5)*6, by4 = i < 5 ? 57 : i < 10 ? 50.6 : 44.2; inkPoly(x, [[bx4,by4 + 6.2],[bx4,by4 + .6],[bx4 + .8,by4],[bx4 + 4.4,by4],[bx4 + 5.2,by4 + .6],[bx4 + 5.2,by4 + 6.2]], '#3a6a92', .3); x.fillStyle = 'rgba(255,255,255,.3)'; x.fillRect(bx4 + 1, by4 + 1, .6, 4.4); }
+  if(s.up.filter){ inkPoly(x, [[106,63.4],[106,47],[112,47],[112,63.4]], '#7a7a86', .35); x.fillStyle = INK; x.fillRect(112, 50, 5, .7); }
+  x.fillStyle = INK; x.fillRect(80, 40, 2, 23.4);
+  // portholes
+  for(let ph = 160, i = 0; ph < 204; ph += 9, i++){ disc(x, ph, 53, 1.8, INK); disc(x, ph, 53, 1.2, i === 2 ? '#0c0a0c' : (night ? '#ffc070' : '#6a7a88')); }
+  x.restore();
+  hull(); x.lineWidth = .6; x.strokeStyle = INK; x.stroke();
+  x.strokeStyle = INK; x.lineWidth = .9; x.strokeRect(21, 38.5, 130, 26.5);
+  x.fillStyle = 'rgba(255,225,170,.45)'; x.fillRect(13, 37, 187, .6);
+  x.save(); x.font = `600 4px 'Do Hyeon', sans-serif`; x.textBaseline = 'middle'; x.fillStyle = '#2a3a52'; x.fillText('새벽호', 176, 43.2); x.restore();
+  if(s.hull <= 50){ x.strokeStyle = INK; x.lineWidth = .7; x.beginPath(); x.moveTo(176, 56); x.lineTo(179, 60); x.lineTo(177, 64); x.moveTo(130, 66); x.lineTo(134, 70); x.moveTo(60, 67); x.lineTo(63, 71); x.stroke(); }
+  if(s.hull <= 25){ disc(x, 192, 60, 2, INK); }
+  // stern & bow rails
+  x.fillStyle = INK; x.fillRect(10, 29.6, 22, .45); for(let px3 = 10; px3 < 32; px3 += 4.4) x.fillRect(px3, 29.6, .45, 7.4); x.fillRect(186, 31, 26, .45); for(let px3 = 186; px3 < 212; px3 += 5) x.fillRect(px3, 31, .45, 6);
+  buoy(27, 33, 2.2);
+  // davit and lifeboat
+  x.fillStyle = INK; x.fillRect(7, 15, .9, 15); x.fillRect(7, 15, 6, .9);
+  inkPoly(x, [[-1,21],[15,21],[13,26],[1,26]], s.up.boat ? '#c8642c' : '#5a5650', .4);
+  if(s.up.boat){ x.fillStyle = '#e8e0d0'; x.fillRect(1, 22.4, 12, .6); } else disc(x, 7, 23.5, 1.3, INK);
+  SHIP = c; return c;
+}
+/* one comic-style person; feet at (fx, fy), pose by role */
+function figure(x, fx, fy, c, t, pose, opt){
+  opt = opt || {};
+  const A = APP[c.id] || {skin:'#d8aa86', hair:'#222', hs:'short', top:colorOf(c), bottom:'#333', boots:'#222'};
+  const quar = c.quar && !opt.portrait;
+  const skin = quar ? '#9ab08a' : A.skin, skinS = shade(skin, .22);
+  const u = A.child ? .66 : (A.old ? .95 : 1), lw = .34;
+  const breathe = (RM || opt.still) ? 0 : Math.sin(t*1.6 + (c.name.charCodeAt(0) % 9))*.12;
+  x.save(); x.translate(fx, fy); x.scale(u, u);
+  if(A.baby){ x.restore(); x.save(); x.translate(fx, fy); inkPoly(x, [[-2.4,0],[2.4,0],[2.8,-2.4],[1,-3.6],[-1.8,-3.4],[-2.8,-2]], '#e4d8c4', .3); disc(x, 1.2, -2.6, 1.1, skin); x.restore(); return; }
+  if(!opt.portrait){ x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.ellipse(0, 0, 3.4, .7, 0, 0, Math.PI*2); x.fill(); }
+  const sit = pose === 'sit', sh = sit ? 2.6 : 0;
+  const top = quar ? '#6a7a5a' : A.top, bottom = A.bottom, broad = A.broad ? 1.15 : (A.f ? .92 : 1);
+  // legs + boots
+  if(sit){
+    inkPoly(x, [[-2.6,0],[-.5,0],[-.4,-1.1],[-2.3,-1.2]], A.boots, lw); inkPoly(x, [[.5,0],[2.7,0],[2.4,-1.2],[.4,-1.1]], A.boots, lw);
+    inkPoly(x, [[-2.4,-1.1],[-.5,-1.1],[-.2,-3.9],[-2.6,-3.6]], bottom, lw); inkPoly(x, [[.5,-1.1],[2.4,-1.1],[2.7,-3.6],[.2,-3.9]], bottom, lw);
+  } else {
+    const step = (pose === 'stand' && !RM && !opt.still) ? Math.sin(t*.8 + c.name.length)*.15 : 0;
+    inkPoly(x, [[-2.1,0],[-.3,0],[-.45,-1.3],[-1.75,-1.35]], A.boots, lw); inkPoly(x, [[.35,0],[2.3,0],[1.85,-1.35],[.5,-1.3]], A.boots, lw);
+    inkPoly(x, [[-1.7,-1.3],[-.45,-1.3],[-.2 + step,-6.4],[-1.85,-6.4]], bottom, lw); inkPoly(x, [[.45,-1.3],[1.75,-1.3],[1.9,-6.4],[.2 - step,-6.4]], bottom, lw);
+    x.fillStyle = shade(bottom, .35); x.beginPath(); x.moveTo(-1.7,-1.3); x.lineTo(-1.2,-1.3); x.lineTo(-1.3,-6.3); x.lineTo(-1.8,-6.3); x.fill();
+  }
+  x.translate(0, sh);
+  const ty = -6.2, sy = -10.9 + breathe;
+  const torso = A.f ? [[-1.7*broad,ty],[1.7*broad,ty],[2.3*broad,sy + .6],[1.5,sy],[-1.5,sy],[-2.3*broad,sy + .6]] : [[-2*broad,ty],[2*broad,ty],[2.5*broad,sy + .5],[1.6,sy],[-1.6,sy],[-2.5*broad,sy + .5]];
+  // arms behind torso (far side)
+  const limb = (pts, w, col) => { x.lineJoin = 'miter'; x.lineCap = 'butt'; x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for(let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); x.strokeStyle = INK; x.lineWidth = w + lw*2; x.stroke(); x.strokeStyle = col; x.lineWidth = w; x.stroke(); };
+  const hand = (hx, hy) => { inkPoly(x, [[hx - .7,hy - .5],[hx + .6,hy - .6],[hx + .8,hy + .6],[hx - .1,hy + 1],[hx - .8,hy + .5]], skin, lw*.85); };
+  const shL = [-2.3*broad, sy + .7], shR = [2.3*broad, sy + .7];
+  let armL, armR, prop = null;
+  if(pose === 'guard'){ armL = [shL, [-2.9*broad,-8.2], [-2.6,-6.1]]; armR = [shR, [2.9*broad,-8.6], [1.3,-7.6]]; prop = 'pipe'; }
+  else if(pose === 'work'){ armL = [shL, [-1.6,-8.6], [1.2,-8.5]]; armR = [shR, [3.1,-8.8], [4,-8.3]]; }
+  else if(pose === 'carry'){ armL = [shL, [-2.9*broad,-8.2], [-2.7,-6]]; armR = [shR, [2.9*broad,-8.3], [2.9,-5.6]]; prop = 'bucket'; }
+  else if(sit){ armL = [shL, [-2.8*broad,-8.4], [-1.6,-6.8]]; armR = [shR, [2.8*broad,-8.4], [1.6,-6.8]]; }
+  else { armL = [shL, [-2.9*broad,-8.3], [-2.75,-6]]; armR = [shR, [2.9*broad,-8.3], [2.75,-6]]; }
+  if(prop === 'pipe'){ x.lineCap = 'butt'; x.strokeStyle = INK; x.lineWidth = .9; x.beginPath(); x.moveTo(-.2,-14); x.lineTo(2.8,-3.4); x.stroke(); x.strokeStyle = '#7a7470'; x.lineWidth = .5; x.stroke(); }
+  const sleeve = A.extra && A.extra.includes('coat') ? top : (A.extra && A.extra.includes('vest') ? (A.inner || top) : top);
+  limb(armL, 1.15, shade(sleeve, .2));
+  // torso + cel shadow
+  inkPoly(x, torso, top, lw);
+  x.fillStyle = shade(top, .28); x.beginPath(); x.moveTo(torso[0][0], torso[0][1]); x.lineTo(torso[0][0]*.15, ty); x.lineTo(-.3, sy); x.lineTo(torso[4][0], torso[4][1]); x.lineTo(torso[5][0], torso[5][1]); x.closePath(); x.fill();
+  const ex = A.extra || [];
+  if(ex.includes('coat')){ inkPoly(x, [[-2.2*broad,-3.6],[-.25,-3.6],[-.4,sy + .3],[-1.6,sy],[-2.5*broad,sy + .6]], top, lw); inkPoly(x, [[.25,-3.6],[2.2*broad,-3.6],[2.5*broad,sy + .6],[1.6,sy],[.4,sy + .3]], top, lw); x.fillStyle = A.inner || '#555'; x.fillRect(-.25, sy + .4, .5, 4.8); x.fillStyle = shade(top, .28); x.beginPath(); x.moveTo(-2.2*broad,-3.6); x.lineTo(-1.4,-3.6); x.lineTo(-1.5, sy + .2); x.lineTo(-2.5*broad, sy + .6); x.fill(); }
+  if(ex.includes('vest')){ inkPoly(x, [[-1.9*broad,ty + .3],[-.3,ty + .3],[-.5,sy + .4],[-1.8,sy + .2]], A.top, lw*.8); inkPoly(x, [[.3,ty + .3],[1.9*broad,ty + .3],[1.8,sy + .2],[.5,sy + .4]], A.top, lw*.8); }
+  if(ex.includes('apron')){ inkPoly(x, [[-1.6,-3.8],[1.6,-3.8],[1.4,-9.3],[-1.4,-9.3]], '#c8b694', lw); x.fillStyle = INK; x.fillRect(-1.5,-7.1,3,.35); }
+  if(ex.includes('tie')){ inkPoly(x, [[-.35,sy + .5],[.35,sy + .5],[.5,-7.4],[0,-6.8],[-.5,-7.4]], '#34345a', lw*.7); }
+  if(ex.includes('belly')){ x.beginPath(); x.ellipse(.6, -7.8, 2.2, 1.9, 0, 0, Math.PI*2); x.fillStyle = top; x.fill(); x.lineWidth = lw; x.strokeStyle = INK; x.stroke(); }
+  if(ex.includes('camera')){ x.strokeStyle = INK; x.lineWidth = .25; x.beginPath(); x.moveTo(-1.2, sy + .4); x.lineTo(.6,-8.4); x.moveTo(1.2, sy + .4); x.lineTo(.6,-8.4); x.stroke(); inkPoly(x, [[-.6,-8.8],[1.8,-8.8],[1.8,-7.4],[-.6,-7.4]], '#2a2a2e', lw*.7); disc(x, .6, -8.1, .45, '#7a8a9a'); }
+  if(A.belt){ x.fillStyle = '#5a3c26'; x.fillRect(-2*broad, ty - .9, 4*broad, .8); inkPoly(x, [[-.4,ty - 1],[.4,ty - 1],[.4,ty - .1],[-.4,ty - .1]], '#b08a4a', .2); }
+  // near arm + hands
+  limb(armR, 1.15, sleeve);
+  hand(armL[2][0], armL[2][1]); hand(armR[2][0], armR[2][1]);
+  if(prop === 'bucket'){ inkPoly(x, [[1.8,-5.6],[4,-5.6],[3.7,-2.9],[2.1,-2.9]], '#6a6e78', lw); x.fillStyle = '#4a7aa8'; x.fillRect(2, -5.4, 1.8, .5); }
+  // neck + head
+  inkPoly(x, [[-.55,sy + .2],[.55,sy + .2],[.5,sy - .9],[-.5,sy - .9]], skinS, lw*.8);
+  const hy = sy - 1 + breathe*.5;
+  const head = [[-1.45,hy - .9],[-1.35,hy - 3.1],[0,hy - 3.8],[1.4,hy - 3.2],[1.55,hy - 1.1],[.85,hy + .05],[0,hy + .3],[-.85,hy - .05]];
+  // hair behind head
+  if(A.hs === 'long'){ inkPoly(x, [[-1.8,hy - 3],[1.8,hy - 3],[2,hy + 1.8],[1.2,hy + 2.2],[-1.2,hy + 2.2],[-2,hy + 1.8]], A.hair, lw); }
+  if(A.hs === 'pony'){ inkPoly(x, [[1.1,hy - 3.2],[2.4,hy - 2.6],[2.6,hy - .2],[1.9,hy + 1.2],[1.5,hy - 1.6]], A.hair, lw); }
+  if(A.hs === 'pig'){ inkPoly(x, [[-1.6,hy - 2.2],[-2.6,hy - 1.6],[-2.4,hy - .4],[-1.5,hy - 1.2]], A.hair, lw); inkPoly(x, [[1.6,hy - 2.2],[2.6,hy - 1.6],[2.4,hy - .4],[1.5,hy - 1.2]], A.hair, lw); }
+  inkPoly(x, head, skin, lw);
+  x.fillStyle = skinS; x.beginPath(); x.moveTo(-1.45,hy - .9); x.lineTo(-1.35,hy - 3.1); x.lineTo(-.5,hy - 3.5); x.lineTo(-.7,hy - 1.6); x.lineTo(-.4,hy + .1); x.lineTo(-.85,hy - .05); x.fill();
+  inkPoly(x, [[-1.55,hy - 2.1],[-1.95,hy - 1.9],[-1.8,hy - 1.1],[-1.4,hy - 1.2]], skinS, lw*.7);
+  // face
+  x.fillStyle = INK;
+  const eyeY = hy - 1.95;
+  if(A.child){ disc(x, -.55, eyeY, .28, INK); disc(x, .65, eyeY, .28, INK); }
+  else { x.fillRect(-.95, eyeY - .1, .6, .26); x.fillRect(.35, eyeY - .1, .65, .26); }
+  x.save(); x.lineWidth = .28; x.strokeStyle = INK; x.beginPath(); x.moveTo(-1.05, eyeY - .55); x.lineTo(-.3, eyeY - .45 + (A.old ? .1 : 0)); x.moveTo(.3, eyeY - .45); x.lineTo(1.1, eyeY - .6 - (c.trust < 40 ? -.25 : 0)); x.stroke();
+  x.beginPath(); x.moveTo(.1, eyeY + .15); x.lineTo(.35, eyeY + .85); x.lineTo(0, eyeY + .95); x.stroke();
+  x.beginPath(); x.moveTo(-.35, hy - .45); x.lineTo(.45, hy - .5 + (c.hp < 40 ? .15 : 0)); x.stroke();
+  if(A.old){ x.lineWidth = .15; x.beginPath(); x.moveTo(-1.1, eyeY + .5); x.lineTo(-.7, eyeY + .9); x.moveTo(1.1, eyeY + .5); x.lineTo(.8, eyeY + .9); x.stroke(); }
+  x.restore();
+  if(ex.includes('stubble')){ x.fillStyle = 'rgba(30,24,20,.28)'; x.beginPath(); x.moveTo(-1.3, hy - 1.1); x.lineTo(1.45, hy - 1.2); x.lineTo(.85, hy + .05); x.lineTo(0, hy + .3); x.lineTo(-.85, hy - .05); x.fill(); }
+  if(ex.includes('beard')){ inkPoly(x, [[-1.3,hy - 1],[1.45,hy - 1.1],[1,hy + .5],[0,hy + 1],[-.95,hy + .45]], A.hair, lw*.8); x.fillStyle = skin; x.fillRect(-.4, hy - .6, .9, .3); }
+  if(ex.includes('scar')){ x.strokeStyle = '#8a4a40'; x.lineWidth = .2; x.beginPath(); x.moveTo(.9, hy - 2.6); x.lineTo(1.2, hy - 1.3); x.stroke(); }
+  if(ex.includes('glasses')){ x.strokeStyle = INK; x.lineWidth = .22; x.strokeRect(-1.15, eyeY - .45, .95, .75); x.strokeRect(.2, eyeY - .45, .95, .75); x.beginPath(); x.moveTo(-.2, eyeY - .15); x.lineTo(.2, eyeY - .15); x.stroke(); x.strokeStyle = 'rgba(255,255,255,.6)'; x.beginPath(); x.moveTo(.3, eyeY - .35); x.lineTo(.7, eyeY + .1); x.stroke(); }
+  // hair front (angular, spiky)
+  const H = A.hair;
+  if(A.hs === 'short') inkPoly(x, [[-1.55,hy - 2],[-1.6,hy - 3.3],[-.9,hy - 4.1],[.3,hy - 4.4],[1.4,hy - 3.9],[1.75,hy - 2.8],[1.5,hy - 2.2],[1.1,hy - 3.1],[.1,hy - 3.2],[-.8,hy - 2.9],[-1.2,hy - 2.2]], H, lw);
+  else if(A.hs === 'buzz') inkPoly(x, [[-1.45,hy - 2.4],[-1.3,hy - 3.4],[0,hy - 4],[1.35,hy - 3.5],[1.55,hy - 2.6],[1.3,hy - 3.1],[0,hy - 3.5],[-1.2,hy - 3]], H, lw*.7);
+  else if(A.hs === 'messy') inkPoly(x, [[-1.6,hy - 1.9],[-2.1,hy - 3],[-1.4,hy - 3.4],[-1.7,hy - 4.3],[-.6,hy - 4],[-.2,hy - 4.9],[.5,hy - 4.1],[1.3,hy - 4.7],[1.4,hy - 3.7],[2.1,hy - 3.5],[1.6,hy - 2.2],[1.1,hy - 3],[.2,hy - 2.8],[-.6,hy - 3.2],[-1.1,hy - 2.3]], H, lw);
+  else if(A.hs === 'bob') inkPoly(x, [[-1.7,hy - .6],[-1.9,hy - 3],[-1,hy - 4.1],[.4,hy - 4.3],[1.6,hy - 3.7],[1.9,hy - 2.3],[1.7,hy - .6],[1.3,hy - .7],[1.3,hy - 2.8],[0,hy - 3],[-1.1,hy - 2.6],[-1.2,hy - .6]], H, lw);
+  else if(A.hs === 'long') inkPoly(x, [[-1.8,hy - .4],[-1.9,hy - 3],[-1.1,hy - 4.1],[.3,hy - 4.3],[1.5,hy - 3.8],[1.9,hy - 2.4],[1.8,hy - .2],[1.4,hy - .4],[1.3,hy - 2.7],[.4,hy - 3.1],[-.4,hy - 2.6],[-1.3,hy - 2.9],[-1.3,hy - .4]], H, lw);
+  else if(A.hs === 'pony' || A.hs === 'pig') inkPoly(x, [[-1.55,hy - 2],[-1.65,hy - 3.2],[-.9,hy - 4],[.3,hy - 4.2],[1.4,hy - 3.8],[1.7,hy - 2.6],[1.3,hy - 3],[.2,hy - 3.3],[-.9,hy - 3],[-1.2,hy - 2.1]], H, lw);
+  else if(A.hs === 'perm'){ for(let k2 = 0; k2 < 9; k2++){ const a = Math.PI*(1.05 + k2*.11); x.beginPath(); x.arc(Math.cos(a)*1.55, hy - 2.4 + Math.sin(a)*1.6, .75, 0, Math.PI*2); x.fillStyle = H; x.fill(); x.lineWidth = lw*.7; x.strokeStyle = INK; x.stroke(); } }
+  else if(A.hs === 'cap'){ inkPoly(x, [[-1.6,hy - 2.5],[-1.5,hy - 3.6],[-.6,hy - 4.4],[.8,hy - 4.4],[1.6,hy - 3.6],[1.7,hy - 2.6]], A.cap, lw); inkPoly(x, [[.4,hy - 2.6],[2.9,hy - 2.4],[2.6,hy - 2],[.4,hy - 2.1]], shade(A.cap, .2), lw*.8); x.fillStyle = H; x.fillRect(-1.6, hy - 2.5, .5, 1); }
+  // injury bandage
+  if(c.hp < 70 && !opt.portrait){ inkPoly(x, [[-1.5,hy - 3],[1.6,hy - 3.2],[1.6,hy - 2.5],[-1.5,hy - 2.3]], '#ece6dc', .2); x.fillStyle = '#b02a2a'; x.fillRect(.6, hy - 3, .7, .5); }
+  x.restore();
+}
+function personHD(x, fx, fy, c, t, label, pose){
+  glow(x, fx, fy - 6, 9, c.quar ? '#92dba6' : '#ffc47a', .26);
+  figure(x, fx, fy, c, t, pose || 'stand');
+  if(label){
+    const A = APP[c.id] || {}, hgt = (A.child ? .66 : 1)*15.5 - (pose === 'sit' ? 2.6 : 0);
+    x.font = `3.2px 'Gowun Dodum', 'Apple SD Gothic Neo', sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    const tw = x.measureText(c.name).width + 2.4; const ly = fy - hgt - (label === 2 ? 4.8 : 0);
+    rrect(x, fx - tw/2, ly - 2.1, tw, 4.2, 1.2, 'rgba(6,6,10,.85)'); x.fillStyle = colorOf(c); x.fillRect(fx - tw/2 + .6, ly - .4, .8, .8);
+    x.fillStyle = '#efe9f6'; x.fillText(c.name, fx + .5, ly + .1);
+  }
+}
+/* portrait busts for the crew bar, role list and event cards */
+const PORTRAITS = {};
+function portraitURL(c){
+  const key = c.id + (c.quar ? 'q' : '') + (c.alive ? '' : 'd');
+  if(PORTRAITS[key]) return PORTRAITS[key];
+  try {
+    const N = 160, cv2 = document.createElement('canvas'); cv2.width = N; cv2.height = N; const x = cv2.getContext('2d');
+    const bg = x.createRadialGradient(N*.62, N*.3, 10, N*.5, N*.5, N*.8); bg.addColorStop(0, '#5a4636'); bg.addColorStop(1, '#1e1a1c'); x.fillStyle = bg; x.fillRect(0, 0, N, N);
+    const A = APP[c.id] || {}; const u = A.child ? .66 : (A.old ? .95 : 1);
+    const k = A.baby ? 26 : 17 / u;
+    const headY = A.baby ? 2.6 : (12.6 + (A.child ? 0 : 0))*u;
+    x.setTransform(k, 0, 0, k, N/2, N*.42 + headY*k);
+    figure(x, 0, 0, c, 0, 'stand', {portrait:true, still:true});
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    const rim = x.createLinearGradient(N, 0, N*.55, 0); rim.addColorStop(0, 'rgba(255,190,110,.22)'); rim.addColorStop(1, 'rgba(255,190,110,0)'); x.fillStyle = rim; x.fillRect(0, 0, N, N);
+    if(!c.alive){ x.fillStyle = 'rgba(20,20,24,.55)'; x.fillRect(0, 0, N, N); }
+    PORTRAITS[key] = cv2.toDataURL('image/png');
+  } catch(e){ PORTRAITS[key] = ''; }
+  return PORTRAITS[key];
+}
+function zombieHD(x, px, py, t, i){
+  const sway = RM ? 0 : Math.sin(t*1.3 + i)*.6;
+  x.save(); x.translate(px, py); x.scale(.95, .95);
+  inkPoly(x, [[-1.6,0],[-.4,0],[-.3,-5.6],[-1.6,-5.4]], '#2c3028', .3); inkPoly(x, [[.4,0],[1.7,0],[1.4,-5.4],[.2,-5.6]], '#2c3028', .3);
+  x.rotate(.12 + sway*.04);
+  inkPoly(x, [[-1.9,-5.4],[1.9,-5.4],[2.3,-9.6],[-2.1,-9.8]], '#3a3c34', .3);
+  x.strokeStyle = INK; x.lineWidth = 1.4; x.beginPath(); x.moveTo(1.6, -9.2); x.lineTo(4.4 + sway, -8.4); x.stroke(); x.strokeStyle = '#6e8460'; x.lineWidth = .9; x.stroke();
+  inkPoly(x, [[-1.2,-9.8],[1.4,-10],[1.6,-12.4],[.2,-13.1],[-1.3,-12.4]], '#7e9468', .3);
+  disc(x, .7, -11.6, .3, '#e03020');
+  x.restore();
+}
+
+const RAIN = Array.from({length:190}, () => ({x:Math.random()*W, y:Math.random()*H, v:3 + Math.random()*2}));
+let lastT = 0, heli = {t:-1, next: 6, dir: 1}, boom = {t:-1, next: 9, x: 0, y: 0}, bolt = {t:-1, next: 5}, grainF = 0;
+function flame(x, fx, fy, w, hgt, t, seed){
+  t = t || 0; seed = seed || 0;
+  for(let k = 0; k < 4; k++){
+    const ox = (k - 1.5)*w*.55 + Math.sin(t*5 + seed + k)*w*.15;
+    const hh = hgt*(k === 1 || k === 2 ? 1 : .55)*(.7 + .35*Math.abs(Math.sin(t*(6 + k*2.3) + seed*4 + k*1.7)));
+    const ww = w*(k === 1 || k === 2 ? .7 : .45), lean = Math.sin(t*3 + seed + k)*ww*.6;
+    const gr = x.createLinearGradient(0, fy - hh, 0, fy); gr.addColorStop(0, 'rgba(255,210,120,0)'); gr.addColorStop(.25, 'rgba(255,200,110,.85)'); gr.addColorStop(.6, 'rgba(240,120,40,.9)'); gr.addColorStop(1, 'rgba(180,40,20,.85)');
+    x.fillStyle = gr; x.beginPath(); x.moveTo(fx + ox + lean, fy - hh); x.quadraticCurveTo(fx + ox + ww, fy - hh*.4, fx + ox + ww*.7, fy); x.lineTo(fx + ox - ww*.7, fy); x.quadraticCurveTo(fx + ox - ww, fy - hh*.45, fx + ox + lean, fy - hh); x.fill();
+  }
+}
+function drawCover(x, img){ const ir = img.width / img.height, cr = W / H; let w = W, h = H, ox = 0, oy = 0; if(ir > cr){ w = H*ir; ox = (W - w)/2; } else { h = W/ir; oy = (H - h)/2; } x.drawImage(img, ox, oy, w, h); }
+function frame(ts){
+  requestAnimationFrame(frame);
+  if(document.hidden || HEADLESS) return;
+  const dt = ts - lastT; if(dt < (RM ? 400 : 33) && !sceneDirty) return; lastT = ts; sceneDirty = false;
+  const t = ts/1000;
+  const loc = S ? S.loc : 0, tod = S && (S.phase === 'night' || S.phase === 'result' || S.phase === 'final') ? 'night' : 'dawn', wk = S ? S.wx : 'clear';
+  const key = loc + '|' + tod + '|' + wk + '|' + K;
+  if(key !== sceneKey || !STATIC){ STATIC = buildStatic(loc, tod, wk); sceneKey = key; }
+  if(!GRAIN) GRAIN = makeGrain();
+  const St = STATIC, P = St.P, wxo = WX[wk] || WX.clear;
+  const custom = ASSETS['bg:' + loc] || ASSETS['bg:all'];
+  g.setTransform(K, 0, 0, K, 0, 0); g.imageSmoothingEnabled = true;
+  if(custom){
+    drawCover(g, custom);
+    g.fillStyle = tod === 'night' ? 'rgba(8,4,10,.45)' : 'rgba(20,10,6,.18)'; g.fillRect(0, 0, W, H);
+  } else {
+    put(g, St.stat, 0, 0);
+    SMOKE.forEach((s, i) => { if(!RM) s.t += s.sp * .05; if(s.t > 1) s.t -= 1; const k = s.t, big = s.big >= 3 ? 1.6 : 1, r2 = (1.6 + k*10)*big, sx = s.sx + k*k*36 + Math.sin(k*6 + i)*2, sy = s.sy - k*80*big;
+      const gr = g.createRadialGradient(sx, sy, 0, sx, sy, r2); const base = k < .25 ? mix(P.smokeLit, P.smoke, k*4) : P.smoke; gr.addColorStop(0, rgba(base, .46*(1 - k))); gr.addColorStop(1, rgba(base, 0)); g.fillStyle = gr; g.fillRect(sx - r2, sy - r2, r2*2, r2*2); });
+    St.fires.forEach((f, i) => {
+      const fl = RM ? 1 : (Math.sin(t*9 + f.ph*3) + Math.sin(t*13 + i)) * .5;
+      glow(g, f.x, f.y - 2, 5 + f.s*3 + fl, '#ff8a3a', (tod === 'night' ? .38 : .18) + fl*.03);
+      flame(g, f.x, f.y + .6, .5 + f.s*.5, 1.4 + f.s*1.1 + fl*.4, RM ? 0 : t, f.ph);
+    });
+    if(St.bridge && (St.crowd || (S && S.approach >= 20))){ const n = St.crowd ? 44 : clamp(Math.floor(S.approach/6), 3, 16); const rz = seeded(5 + loc); g.fillStyle = P.crowd; for(let i = 0; i < n; i++){ let zx = rz()*W; if(zx > St.bridge.gap[0] - 2 && zx < St.bridge.gap[1] + 2) zx = St.bridge.gap[0] - 4 - i; const sw = RM ? 0 : Math.sin(t*1.1 + i)*.5; disc(g, zx + sw + .6, St.bridge.y - 4.6, .7, P.crowd); g.fillRect(zx, St.bridge.y - 3.8, 1.3, 3.8); } }
+    // crowd shambling along the far bank
+    { const n = 10 + (S ? clamp(S.approach, 0, 50) : 6); const rz = seeded(11 + loc); g.fillStyle = P.crowd; for(let i = 0; i < n; i++){ const base = rz()*W, sp = .3 + rz()*.6; const zx = RM ? base : (base + t*sp*(rz() < .5 ? 1 : -1) + W) % W; const sw = RM ? 0 : Math.sin(t*1.4 + i)*.4; disc(g, zx + sw + .5, HOR - 3.6, .55, P.crowd); g.fillRect(zx, HOR - 3, 1.1, 3); } }
+    const RH = H - HOR;
+    put(g, St.wat, 0, HOR);
+    g.globalAlpha = .45;
+    for(let i = 0; i < RH; i++){ const off = RM ? 0 : Math.sin(t*1.4 + i*.45) * (.4 + i*.035); g.drawImage(St.refl, 0, i*K, W*K, K, off, HOR + i, W, 1.05); }
+    g.globalAlpha = .6; put(g, St.wat, 0, HOR); g.globalAlpha = 1;
+    if(wxo.algae){ g.globalAlpha = .35; g.fillStyle = '#2e4a26'; g.fillRect(0, HOR, W, RH); g.globalAlpha = 1; }
+    St.fires.forEach((f, i) => { if(f.y > HOR - 2) return; const ry = HOR + Math.min(RH - 2, (HOR - f.y)*1.05); if(!RM && Math.sin(t*5 + i*2) < -.4) return; g.globalAlpha = .55; rrect(g, f.x - 3 + Math.sin(t*2 + i), ry, 6, .7, .3, '#f07a2a'); rrect(g, f.x - 1.5 + Math.sin(t*2.6 + i), ry + 2, 3, .5, .3, '#f07a2a'); g.globalAlpha = 1; });
+    St.lamps.forEach(([lx3], i) => { g.globalAlpha = .4; rrect(g, lx3 - 1.5 + (RM ? 0 : Math.sin(t*3 + i)), HOR + 3 + (i % 3), 3.5, .6, .3, '#ffc070'); g.globalAlpha = 1; });
+    if(!St.grey){ for(let k = 0; k < 34; k++){ const yy = HOR + 2 + k*2.4, spread = 3 + k*1.2, jitter = RM ? 0 : Math.sin(t*3 + k*1.7)*spread*.5; if(!RM && Math.sin(t*6 + k*2.3) < -.5) continue; g.globalAlpha = (tod === 'night' ? .25 : .7)*(1 - k/40); rrect(g, St.sunX - spread/2 + jitter, yy, 2 + (k % 3)*2, .5, .25, P.glint); } g.globalAlpha = 1; }
+    put(g, St.props, 0, HOR);
+    DEBRIS.forEach((d, i) => { if(!RM) d.x -= d.v; if(d.x < -12) d.x = W + 10; const by = d.y + Math.sin(t*1.2 + i)*.4; g.fillStyle = '#0a090c'; if(d.kind === 0){ rrect(g, d.x, by - 1, d.w, 1.6, .6, '#0d0b0e'); rrect(g, d.x + d.w*.25, by - 2, d.w*.4, 1.2, .4, '#0d0b0e'); } else if(d.kind === 1){ rrect(g, d.x, by - 1.6, d.w*.5, 1.8, .2, '#2a2018'); } else { g.strokeStyle = '#0d0b0e'; g.lineWidth = .6; g.beginPath(); g.ellipse(d.x, by - .6, 1.6, .7, 0, 0, Math.PI*2); g.stroke(); } g.fillStyle = 'rgba(160,140,130,.18)'; g.fillRect(d.x - 1, by + .4, d.w + 2, .3); });
+  }
+  // helicopter with searchlight (sky crossing)
+  if(!RM){
+    if(heli.t < 0 && t > heli.next){ heli.t = t; heli.dir = Math.random() < .5 ? 1 : -1; heli.y = 22 + Math.random()*24; }
+    if(heli.t >= 0){ const k = (t - heli.t)/14; if(k > 1){ heli.t = -1; heli.next = t + 18 + Math.random()*22; } else {
+      const hx = heli.dir > 0 ? -20 + k*(W + 40) : W + 20 - k*(W + 40), hy = heli.y + Math.sin(k*8)*1.5;
+      const sweep = Math.sin(t*.8)*30;
+      g.globalAlpha = .07; g.fillStyle = '#f6f0e0'; g.beginPath(); g.moveTo(hx, hy + 1); g.lineTo(hx + sweep - 18, HOR + 6); g.lineTo(hx + sweep + 18, HOR + 6); g.closePath(); g.fill(); g.globalAlpha = 1;
+      glow(g, hx + sweep, HOR + 2, 14, '#f6f0e0', .12);
+      g.fillStyle = '#040406'; rrect(g, hx - 3, hy - 1.2, 6, 2.4, 1.2, '#040406'); g.fillRect(hx - 9*heli.dir, hy - .4, 6*heli.dir, .7); g.fillRect(hx - 6, hy - 2, 12, .3);
+      if(Math.sin(t*10) > .3) disc(g, hx - 8*heli.dir, hy, .5, '#ff2a1a'); } }
+    // distant explosion
+    if(boom.t < 0 && t > boom.next && St.fires.length){ const f = St.fires[Math.floor(Math.random()*St.fires.length)]; boom = {t, next: 0, x: f.x, y: f.y}; }
+    if(boom.t >= 0){ const k = (t - boom.t)/1.4; if(k > 1){ boom.t = -1; boom.next = t + 16 + Math.random()*24; } else { glow(g, boom.x, boom.y - 4, 10 + k*40, '#ffd08a', (1 - k)*.7); glow(g, boom.x, boom.y - 4, 4 + k*12, '#ffffff', (1 - k)*.8); if(k < .15){ g.fillStyle = `rgba(255,170,90,${.12*(1 - k/.15)})`; g.fillRect(0, 0, W, H); } } }
+  }
+  // embers rising, ash falling
+  if(!custom || true){ EMBERS.forEach((e, i) => { if(!RM) e.t += e.sp*.02; if(e.t > 1) e.t -= 1; const ex = e.f.x + e.dx*e.t + Math.sin(t*2 + i)*1.5, ey = e.f.y - e.t*70; if(Math.sin(t*12 + i) > -.2){ g.globalAlpha = (1 - e.t)*.9; disc(g, ex, ey, .35, '#ffb060'); g.globalAlpha = 1; } }); }
+  // pier & zombies when docked
+  const docked = S && S.docked && !(S.phase === 'result' && S.anchor);
+  const shipX = docked ? 50 : 62;
+  if(docked){
+    rrect(g, -2, 170, 58, 3.6, .6, '#1e1618'); g.fillStyle = '#3a2a28'; g.fillRect(-2, 170, 58, .5);
+    g.fillStyle = '#120d0e'; for(let px4 = 4; px4 < 56; px4 += 11) g.fillRect(px4, 173, 1.6, 14);
+    g.fillRect(12, 151, .8, 19); const flick = RM || Math.sin(t*17) > -.7; if(flick){ g.fillStyle = '#ffc070'; g.fillRect(10.8, 150, 3.2, 1.4); glow(g, 12.4, 151, 10, '#f2a65a', .45); }
+    const nz = S ? clamp(Math.floor(S.approach/8), 1, 8) : 2;
+    for(let i = 0; i < nz; i++){ if(ASSETS.zombie){ const z = ASSETS.zombie, zh = 17, zw = zh*z.width/z.height; g.drawImage(z, 2 + i*6 + (RM ? 0 : Math.sin(t*1.2 + i)*.6), 170.5 - zh, zw, zh); } else zombieHD(g, 5 + i*6, 170, t, i); }
+  }
+  const night = tod === 'night';
+  const ship = shipLayer(night);
+  const bob = RM ? 0 : Math.sin(t*1.3)*.8;
+  const oy = SY + bob;
+  if(night && S && S.up.search){ g.globalAlpha = .1; g.fillStyle = '#f0f0ff'; g.beginPath(); g.moveTo(shipX + 163*SS, oy + 2*SS); g.lineTo(W, oy - 34); g.lineTo(W, oy + 8); g.closePath(); g.fill(); g.globalAlpha = 1; }
+  if(!RM){ for(let k = 0; k < 5; k++){ const kk = ((t*.22 + k*.2) % 1); g.globalAlpha = .45*(1 - kk); disc(g, shipX + 66*SS - kk*16, oy - kk*20, 1.2 + kk*4.5, '#141317'); } g.globalAlpha = 1; }
+  const photoShip = ASSETS.ship;
+  if(photoShip){ const sw = 236*SS, sh = sw*photoShip.height/photoShip.width; g.drawImage(photoShip, shipX - 2, SY + WL*SS - sh*.86 + bob, sw, sh); }
+  else put(g, ship, shipX, oy, SS);
+  // red emergency lamp on wheelhouse
+  if(!photoShip && !RM && Math.sin(t*4) > .2){ disc(g, shipX + 182*SS, oy + 3*SS, .9, '#ff2a1a'); glow(g, shipX + 182*SS, oy + 3*SS, 10, '#ff2a1a', .35); }
+  if(S && !photoShip){
+    g.save(); g.translate(shipX, oy); g.scale(SS, SS);
+    const showLabel = S.phase === 'assign';
+    const slots = {rest:[], water:[], engine:[], guard:[], land:[], quar:[]};
+    onboard().forEach(c => { slots[c.quar ? 'quar' : c.role].push(c); });
+    const putP = (arr, pts, pose) => arr.forEach((c, j) => { const p = pts[j % pts.length]; personHD(g, p[0] + Math.floor(j/pts.length)*4, p[1], c, t, showLabel ? 1 + (j % 2) : 0, pose); });
+    putP(slots.rest, [[44,35.6],[56,35.6],[68,35.6],[80,35.6],[96,35.6],[108,35.6],[120,35.6],[132,35.6],[142,35.6]], 'sit');
+    putP(slots.water, [[95,63],[104,63],[113,63]], 'carry');
+    putP(slots.engine, [[165,36],[38,63],[29,63]], 'work');
+    putP(slots.guard, [[44,10.6],[132,10.6],[20,37],[195,37]], 'guard');
+    if(!(S.phase === 'landing' || (S.f.landedToday && S.phase !== 'night' && S.phase !== 'result'))) putP(slots.land, [[26,37],[14,37],[32,37]], 'stand');
+    putP(slots.quar, S.up.boat ? [[7,21]] : [[88,63]], 'sit');
+    if(showLabel){
+      g.font = `3px 'Do Hyeon', sans-serif`; g.textAlign = 'left'; g.textBaseline = 'top'; g.fillStyle = 'rgba(239,233,246,.8)';
+      [['휴식 · 객실',37,18],['기관·조타',156,9],['기관실',24,41],['물 관리 · 창고',84,41],['경계 · 지붕',100,5],['상륙조',12,26]].forEach(([tx3, ax, ay]) => g.fillText(tx3, ax, ay));
+    }
+    g.restore();
+  }
+  g.globalAlpha = .62; g.fillStyle = P.water[0]; g.fillRect(0, SY + WL*SS + bob, W, H); g.globalAlpha = 1;
+  for(let k = 0; k < 9; k++){ const wx4 = ((k*53 + (RM ? 0 : t*8)) % (W + 20)) - 10; g.globalAlpha = .35; rrect(g, wx4, SY + WL*SS + 4 + (k % 4)*6, 7 + (k % 3)*3, .5, .3, '#6a5a5a'); } g.globalAlpha = 1;
+  g.globalAlpha = .45; g.fillStyle = '#b08070'; g.fillRect(shipX + 14*SS, SY + WL*SS + bob, 188*SS, .4); g.globalAlpha = 1;
+  if(!custom) put(g, St.fore, 0, 0);
+  // dust
+  ASH.forEach((a, i) => { if(!RM){ a.y += a.v; a.x += Math.sin(t + a.d)*.06; if(a.y > H){ a.y = -2; a.x = Math.random()*W; } } g.globalAlpha = .35 + .25*Math.sin(t*2 + a.d); g.fillStyle = P.dust; g.fillRect(a.x, a.y, .45, .45); }); g.globalAlpha = 1;
+  if(wxo.rain){ g.strokeStyle = 'rgba(150,160,180,.45)'; g.lineWidth = .3; g.beginPath(); RAIN.forEach(d => { if(!RM){ d.y += d.v; d.x -= d.v*.35; if(d.y > H){ d.y = -4; d.x = Math.random()*W + 30; } } g.moveTo(d.x, d.y); g.lineTo(d.x - 1, d.y + 3.6); }); g.stroke();
+    if(!RM){ if(bolt.t < 0 && t > bolt.next){ bolt.t = t; } if(bolt.t >= 0){ const k = (t - bolt.t)/.5; if(k > 1){ bolt.t = -1; bolt.next = t + 6 + Math.random()*10; } else if(k < .1 || (k > .25 && k < .32)){ g.fillStyle = 'rgba(200,210,255,.22)'; g.fillRect(0, 0, W, H); } } } }
+  if(wxo.fog){ const off = RM ? 0 : (t*4) % W; put(g, St.fog, -off, 0); put(g, St.fog, -off + W*2, 0); g.globalAlpha = .2; g.fillStyle = '#6a6466'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+  // colour grade, danger pulse, vignette, grain
+  g.fillStyle = P.grade; g.fillRect(0, 0, W, H);
+  if(!custom && !St.grey){ g.save(); g.globalCompositeOperation = 'lighter'; glow(g, St.sunX, HOR - 46, 160, P.haze, tod === 'night' ? .05 : .16); glow(g, St.sunX, HOR - 46, 30, '#fff4d0', tod === 'night' ? 0 : .25); g.restore(); }
+  const danger = S && (S.phase === 'night' ? attackP(nightAp()) : attackP(S.approach));
+  if(danger >= .2 && !RM){ const a = (danger >= .45 ? .28 : .14) * (.6 + .4*Math.sin(t*(danger >= .45 ? 4 : 2.4))); const vg2 = g.createRadialGradient(W/2, H/2, H*.35, W/2, H/2, W*.62); vg2.addColorStop(0, 'rgba(160,10,10,0)'); vg2.addColorStop(1, `rgba(160,10,10,${a})`); g.fillStyle = vg2; g.fillRect(0, 0, W, H); }
+  const vg = g.createRadialGradient(W/2, H*.52, H*.28, W/2, H*.52, W*.66); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, night ? 'rgba(6,4,2,.55)' : 'rgba(20,10,4,.38)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
+  if(!RM) grainF = (grainF + 1) % 4; g.globalCompositeOperation = 'overlay'; g.drawImage(GRAIN[grainF], 0, 0, cv.width, cv.height); g.globalCompositeOperation = 'source-over';
+}
+/* ============================ PHOTO ASSETS ============================
+   AI로 만든 실사 이미지(배경 · 배 · 인물)를 넣으면 코드 그림 대신 사용한다.
+   EMBED: 제출 파일에 직접 넣은 이미지(data URI). 브라우저에서 넣은 이미지는 IndexedDB에 저장. */
+const EMBED = {};
+const ASSETS = {};
+const STYLE_BG = 'photorealistic, cinematic film still, post-apocalyptic Seoul, Han River, dusk under a sky choked with black smoke, burning and half-collapsed high-rise apartments, orange firelight reflected on dark water, haze, 35mm, wide shot, river fills the lower third, no people, no text, no watermark, 16:9';
+const STYLE_PORTRAIT = 'photorealistic portrait, upper body, looking slightly off camera, exhausted, soot and dust on skin and clothes, warm firelight from one side, dark smoky background, shallow depth of field, 85mm, cinematic, no text, square 1:1';
+const ASSET_SLOTS = [
+  {key:'bg:all', group:'배경', name:'모든 정박지 공통', prompt:STYLE_BG},
+  {key:'bg:0', group:'배경', name:'잠실 선착장', prompt:'abandoned riverside ferry pier with a ticket booth, a ruined skyscraper burning in the distance, ' + STYLE_BG},
+  {key:'bg:1', group:'배경', name:'뚝섬 유원지', prompt:'riverside amusement park with a broken ferris wheel and looted convenience store, ' + STYLE_BG},
+  {key:'bg:2', group:'배경', name:'반포 한강공원', prompt:'long concrete river bridge with a collapsed middle span, abandoned cars on the bridge, ' + STYLE_BG},
+  {key:'bg:3', group:'배경', name:'여의나루 마리나', prompt:'small marina with sunken and capsized yachts, fuel pump on a dock, office towers burning behind, ' + STYLE_BG},
+  {key:'bg:4', group:'배경', name:'망원 한강공원', prompt:'riverside park fortified with barricades, sandbags and a hand-painted flag, survivors\' bonfire, ' + STYLE_BG},
+  {key:'bg:5', group:'배경', name:'난지 캠핑장', prompt:'riverside campground with collapsed tents and a smoldering campfire, reeds along the bank, ' + STYLE_BG},
+  {key:'bg:6', group:'배경', name:'행주대교 하류', prompt:'large river bridge in thick fog crowded with silhouettes of zombies on the deck, searchlights of navy ships far downstream, ' + STYLE_BG},
+  {key:'ship', group:'배', name:'새벽호 (배 전체)', prompt:'photorealistic side view of a small old two-deck Han River sightseeing cruise boat, full boat visible from bow to stern, white hull rusted and scorched, boarded-up windows, sandbags and barbed wire on the roof deck, a lifeboat hanging at the stern, warm light inside the cabins, isolated on a plain pure black background, no water, no people, wide 3:1 framing'},
+  {key:'p:tae', group:'인물', name:'강태오 (44, 기관사)', prompt:'Korean man in his mid 40s, river boat engineer, short hair, stubble, oil-stained navy coveralls, ' + STYLE_PORTRAIT},
+  {key:'p:so', group:'인물', name:'한소율 (31, 약사)', prompt:'Korean woman, 31, pharmacist, tied-back hair, torn white pharmacy coat over a hoodie, medical bag strap, ' + STYLE_PORTRAIT},
+  {key:'p:du', group:'인물', name:'박두석 (63, 어부)', prompt:'Korean man, 63, weathered fisherman, deep wrinkles, grey hair, worn fishing cap and padded vest, ' + STYLE_PORTRAIT},
+  {key:'p:ga', group:'인물', name:'윤가람 (19, 수영 선수)', prompt:'Korean woman, 19, university swimmer, athletic, short wet hair, track jacket, determined eyes, ' + STYLE_PORTRAIT},
+  {key:'p:min', group:'인물', name:'최민규 (38, 경호원)', prompt:'Korean man, 38, former bodyguard, broad shoulders, buzz cut, black tactical jacket, cold suspicious stare, ' + STYLE_PORTRAIT},
+  {key:'p:se', group:'인물', name:'오세진 (27, 영상 크리에이터)', prompt:'Korean man, 27, video creator, messy hair, glasses with a cracked lens, camera strap around neck, ' + STYLE_PORTRAIT},
+  {key:'p:myeong', group:'인물', name:'서명자 (70, 매점 주인)', prompt:'Korean woman, 70, snack bar owner, permed grey hair, cardigan and apron, gentle but tired face, ' + STYLE_PORTRAIT},
+  {key:'p:ha', group:'인물', name:'이하준 (9, 아이)', prompt:'Korean boy, 9, oversized hoodie, scared but brave expression, ' + STYLE_PORTRAIT},
+  {key:'p:woo', group:'인물', name:'정우현 (41, 회사원)', prompt:'Korean man, 41, office worker, loosened tie and dirty dress shirt, red eyes from crying, ' + STYLE_PORTRAIT},
+  {key:'p:nae', group:'인물', name:'김나래 (39, 교사)', prompt:'Korean woman, 39, school teacher, shoulder-length hair, beige trench coat, hollow grief-stricken eyes, ' + STYLE_PORTRAIT},
+  {key:'p:yu', group:'인물', name:'최유나 (33, 간호조무사)', prompt:'Korean woman, 33, nursing assistant, scrubs under a padded jacket, protective expression, ' + STYLE_PORTRAIT},
+  {key:'p:sea', group:'인물', name:'최서아 (5, 아이)', prompt:'Korean girl, 5, yellow raincoat, holding a small stuffed rabbit, ' + STYLE_PORTRAIT},
+  {key:'p:rin', group:'인물', name:'문하린 (29, 임신 8개월)', prompt:'Korean woman, 29, eight months pregnant, hand on belly, loose cardigan, calm but anxious, ' + STYLE_PORTRAIT},
+  {key:'zombie', group:'좀비', name:'좀비 (선착장에 서 있는 모습)', prompt:'photorealistic full body infected zombie standing, torn office clothes, grey skin, hunched posture, isolated on a plain pure black background, no text, portrait 1:2'}
+];
+const IDB = {
+  db: null,
+  open(){ return new Promise(res => { try { const r = indexedDB.open('hgp_art', 1); r.onupgradeneeded = () => r.result.createObjectStore('bg'); r.onsuccess = () => { this.db = r.result; res(this.db); }; r.onerror = () => res(null); } catch(e){ res(null); } }); },
+  async put(k, v){ const db = this.db || await this.open(); if(!db) return; try { db.transaction('bg', 'readwrite').objectStore('bg').put(v, k); } catch(e){} },
+  async del(k){ const db = this.db || await this.open(); if(!db) return; try { db.transaction('bg', 'readwrite').objectStore('bg').delete(k); } catch(e){} },
+  async load(){ const db = this.db || await this.open(); if(!db) return; try { const rq = db.transaction('bg').objectStore('bg').openCursor(); rq.onsuccess = () => { const cur = rq.result; if(!cur) return; let k = cur.key; if(typeof k === 'number' || k === 'all') k = 'bg:' + k; setAsset(k, cur.value, false); cur.continue(); }; } catch(e){} }
+};
+/* black-background images (ship, zombie) become transparent */
+function knockOutBlack(img){
+  const c = document.createElement('canvas'); const s = Math.min(1, 1600 / Math.max(img.width, img.height));
+  c.width = Math.round(img.width*s); c.height = Math.round(img.height*s); const x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height);
+  try { const d = x.getImageData(0, 0, c.width, c.height); const a = d.data;
+    for(let i = 0; i < a.length; i += 4){ const m = Math.max(a[i], a[i+1], a[i+2]); if(m < 18) a[i+3] = 0; else if(m < 40) a[i+3] = Math.round(a[i+3]*(m - 18)/22); }
+    x.putImageData(d, 0, 0);
+    // trim empty borders
+    let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0;
+    for(let y = 0; y < c.height; y += 2) for(let xx = 0; xx < c.width; xx += 2){ if(a[(y*c.width + xx)*4 + 3] > 40){ if(xx < x0) x0 = xx; if(xx > x1) x1 = xx; if(y < y0) y0 = y; if(y > y1) y1 = y; } }
+    if(x1 > x0 && y1 > y0){ const t = document.createElement('canvas'); t.width = x1 - x0 + 2; t.height = y1 - y0 + 2; t.getContext('2d').drawImage(c, -x0, -y0); return t; }
+  } catch(e){}
+  return c;
+}
+function setAsset(k, src, store){
+  const img = new Image();
+  img.onload = () => { ASSETS[k] = (k === 'ship' || k === 'zombie') ? knockOutBlack(img) : img; ASSETS[k].url = img.src; sceneDirty = true; if(S) render(); };
+  img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
+  if(store && typeof src !== 'string') IDB.put(k, src);
+}
+function clearAsset(k){ delete ASSETS[k]; IDB.del(k); sceneDirty = true; if(S) render(); }
+function loadEmbedded(){ for(const k in EMBED) setAsset(k, EMBED[k], false); }
+const portraitUrl = c => { const a = ASSETS['p:' + c.id]; return a ? a.url : null; };
+function avatar(c, size){
+  const url = portraitUrl(c) || portraitURL(c), ring = !c.alive ? '#555' : c.quar ? 'var(--gain)' : c.hp < 40 ? 'var(--cost)' : c.hp < 70 ? 'var(--ember)' : 'rgba(255,255,255,.18)';
+  const st = `width:${size}px;height:${size}px;border-color:${ring}`;
+  return url ? `<span class="av" style="${st}"><img src="${url}" alt=""></span>` : `<span class="av" style="${st};background:${colorOf(c)}">${esc(c.name.slice(-2))}</span>`;
+}
+function copyText(t, btn){
+  const done = () => { btn.textContent = '복사됨'; setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1400); };
+  try { navigator.clipboard.writeText(t).then(done, () => sel()); } catch(e){ sel(); }
+  function sel(){ const ta = btn.parentElement.querySelector('textarea'); if(ta){ ta.hidden = false; ta.select(); } }
+}
+function renderRoster(){
+  const el = $('#roster'); if(!el) return;
+  if(!S || document.body.classList.contains('lobby')){ el.innerHTML = ''; return; }
+  const RN = {land:'상륙조', guard:'경계', engine:'기관·조타', water:'물 관리', rest:'휴식'};
+  el.innerHTML = alive().map(c => `<button class="rm" data-act="crew" title="${esc(c.name)} · 체력 ${c.hp} · 신뢰 ${c.trust}">${avatar(c, 40)}<span class="rn">${esc(c.name)}</span><span class="rr">${c.quar ? '격리' : c.away ? '외출' : RN[c.role]}</span></button>`).join('');
+}
+
+/* ============================ BOOT ============================ */
+function start(data){
+  sizeCanvas(); loadEmbedded();
+  if(data && data.S){ S = data.S; snaps = data.snaps || []; opts = data.opts || opts; render(); if(S.phase === 'ending') showEnding(); }
+  else showLobby();
+  requestAnimationFrame(frame);
+}
+let rzT = null; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(sizeCanvas, 150); });
+try { window.claude && window.claude.hot && window.claude.hot.snapshot && window.claude.hot.snapshot(() => ({S, snaps, opts})); } catch(e){}
+const hot = window.claude && window.claude.hot;
+window.__HGP = { get S(){ return S; }, act, EV, ordered: ev => ordered(ev), setHeadless(v){ HEADLESS = v; }, fuelToGoal:() => fuelToGoal(), nightAp:() => nightAp(), attackP:a => attackP(a), landers:() => landers(), guards:() => guards(), legCost:i => legCost(i), alive:() => alive(), waterDays:() => waterDays(), avgTrust:() => avgTrust(), canLand:c => canLand(c), bonded:() => bonded(), useMed:id => useMed(id), setRole:(id,r) => { const c = byId(id); if(c) c.role = r; } };
+if(hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
+})();
+</script>
+</body></html>
