@@ -164,6 +164,11 @@ body.acting #panel{pointer-events:none;opacity:.45} body.acting #roster,body.act
 }
 .amm{position:absolute;right:8px;top:44px;width:210px;border-radius:6px;border:1px solid rgba(255,255,255,.12);image-rendering:auto;pointer-events:none}
 @media (max-width:700px),(max-height:500px){ .amm{width:140px;top:30px;right:4px} }
+#sailtag{position:absolute;left:50%;top:9%;transform:translateX(-50%);text-align:center;background:linear-gradient(90deg,rgba(10,8,14,0),rgba(10,8,14,.72),rgba(10,8,14,0));padding:8px 60px;cursor:pointer;z-index:20;font-family:var(--f-display);color:#efe7d8;animation:sailIn .6s ease-out both}
+#sailtag b{display:block;font-weight:400;font-size:30px;letter-spacing:.04em} #sailtag b span{color:#f2a65a} #sailtag small{font-size:13px;color:#cfc6dc}
+@keyframes sailIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+body.sailing #panel{opacity:.55;transition:opacity .3s}
+@media (max-width:700px){ #sailtag b{font-size:18px} #sailtag small{font-size:10px} #sailtag{padding:4px 24px} }
 #chart{display:block;width:100%;height:auto;aspect-ratio:3/1;background:#121019;border-radius:8px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--mute);flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
@@ -740,15 +745,64 @@ function route(kind){
   const L = [];
   if(kind === 'stay'){ L.push(`${LOCS[S.loc].short}에 머문다. 연료를 아끼지만 접근도가 쌓인다.`); }
   else {
-    const n = kind === 'two' ? 2 : 1;
+    const n = kind === 'two' ? 2 : 1, from = S.loc;
     for(let i = 0; i < n && S.loc < 6; i++){ travelLeg(L); }
-    S.f.movedLegs = n;
+    S.f.movedLegs = n; S.sailFrom = from;
   }
   S.lines = L;
   const canLandHere = LOCS[S.loc].loot && !S.f.landedToday && S.f.movedLegs < 2;
   S.phase = canLandHere ? 'landing' : 'night';
   if(!canLandHere) S.pre = L; else S.routeLines = L;
   render(true);
+  if(S.sailFrom !== undefined && S.sailFrom !== S.loc) startSail(S.sailFrom, S.loc); S.sailFrom = undefined;
+}
+let SAIL = null;
+function startSail(from, to){
+  if(HEADLESS) return;
+  const tod = (S.phase === 'night' || S.phase === 'result' || S.phase === 'final') ? 'night' : 'dawn';
+  const A = buildStatic(from, tod, S.wx), B = buildStatic(to, tod, S.wx);
+  SAIL = {A, B, t0:performance.now(), dur:1600 + (to - from)*2600, from, to, ox:0, v:0};
+  document.body.classList.add('sailing');
+  let tag = $('#sailtag'); if(!tag){ tag = document.createElement('div'); tag.id = 'sailtag'; $('#stage').appendChild(tag); tag.addEventListener('click', endSail); }
+  tag.innerHTML = `<b>${LOCS[from].short} <span>→</span> ${LOCS[to].short}</b><small>항해 중 · 클릭하면 건너뛰기</small>`; tag.hidden = false;
+  sceneDirty = true;
+}
+function endSail(){ if(!SAIL) return; SAIL = null; document.body.classList.remove('sailing'); const tag = $('#sailtag'); if(tag) tag.hidden = true; sceneDirty = true; }
+function sailBg(t){
+  const k = clamp((performance.now() - SAIL.t0)/SAIL.dur, 0, 1);
+  if(k >= 1){ setTimeout(endSail, 0); }
+  const e = k < .5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2)/2;
+  SAIL.ox = -e*(W - 90); SAIL.v = Math.sin(Math.PI*k);
+  const RH = H - HOR;
+  const drawSt = (c, St, x) => {
+    c.save(); c.translate(x, 0); c.beginPath(); c.rect(0, 0, W, H); c.clip();
+    put(c, St.stat, 0, 0);
+    St.fires.forEach((f, i) => { const fl = (Math.sin(t*9 + f.ph*3) + Math.sin(t*13 + i))*.5; glow(c, f.x, f.y - 2, 5 + f.s*3 + fl, '#ff8a3a', (St.tod === 'night' ? .38 : .18)); flame(c, f.x, f.y + .6, .5 + f.s*.5, 1.4 + f.s*1.1 + fl*.4, t, f.ph); });
+    put(c, St.wat, 0, HOR);
+    c.globalAlpha = .45;
+    for(let i = 0; i < RH; i++){ const off = Math.sin(t*1.4 + i*.45)*(.4 + i*.035); c.drawImage(St.refl, 0, i*K, W*K, K, off, HOR + i, W, 1.05); }
+    c.globalAlpha = .6; put(c, St.wat, 0, HOR); c.globalAlpha = 1;
+    put(c, St.props, 0, HOR);
+    c.restore();
+  };
+  const xa = SAIL.ox, xb = SAIL.ox + W - 90;
+  if(xb < W) drawSt(g, SAIL.B, xb);
+  if(xa > -W){
+    if(!SAIL.tmp || SAIL.tmp.width !== cv.width){ SAIL.tmp = document.createElement('canvas'); SAIL.tmp.width = cv.width; SAIL.tmp.height = cv.height; }
+    const c = SAIL.tmp.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, cv.width, cv.height); c.setTransform(K, 0, 0, K, 0, 0); c.imageSmoothingEnabled = true;
+    drawSt(c, SAIL.A, xa);
+    const FW = 90, gx = xa + W - FW, gr = c.createLinearGradient(gx, 0, gx + FW, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
+    c.globalCompositeOperation = 'destination-out'; c.fillStyle = gr; c.fillRect(gx, 0, FW + 1, H); c.globalCompositeOperation = 'source-over';
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(SAIL.tmp, 0, 0); g.restore();
+  }
+  // rushing water streaks (faster near the camera)
+  for(let i = 0; i < 30; i++){
+    const yy = HOR + 2 + ((i*7.37) % (RH - 4)), d = (yy - HOR)/RH, sp = 18 + d*90;
+    const xx = W + 20 - ((t*sp*(.35 + SAIL.v*1.4) + i*131) % (W + 60));
+    g.globalAlpha = (.25 + .4*d)*(.4 + .6*SAIL.v);
+    rrect(g, xx, yy, 5 + d*18*(.5 + SAIL.v), .45 + d*.5, .2, '#e0d2c0');
+  }
+  g.globalAlpha = 1;
 }
 function travelLeg(L){
   const i = S.loc, cost = legCost(i); S.fuel -= cost;
@@ -1376,6 +1430,7 @@ const tipHtml = phase => (S && S.tut && S.day <= 2 && TIPS[phase]) ? `<div class
 /* ============================ INPUT ============================ */
 function act(a, arg){
   if(ACT.on && !['crew','log','close','menu'].includes(a)) return;
+  if(SAIL && !['crew','log','close','menu'].includes(a)) endSail();
   switch(a){
     case 'ev': chooseEvent(arg); break;
     case 'toAssign': toAssign(); break;
@@ -1845,7 +1900,7 @@ function drawCover(x, img){ const ir = img.width / img.height, cr = W / H; let w
 function frame(ts){
   requestAnimationFrame(frame);
   if(document.hidden || HEADLESS) return;
-  const dt = ts - lastT; if(dt < (RM ? 400 : ACT.on ? 60 : 33) && !sceneDirty) return; lastT = ts; sceneDirty = false;
+  const dt = ts - lastT; if(dt < (SAIL ? 16 : RM ? 400 : ACT.on ? 60 : 33) && !sceneDirty) return; lastT = ts; sceneDirty = false;
   const t = ts/1000;
   const loc = S ? S.loc : 0, tod = S && (S.phase === 'night' || S.phase === 'result' || S.phase === 'final') ? 'night' : 'dawn', wk = S ? S.wx : 'clear';
   const key = loc + '|' + tod + '|' + wk + '|' + K;
@@ -1857,7 +1912,7 @@ function frame(ts){
   if(custom){
     drawCover(g, custom);
     g.fillStyle = tod === 'night' ? 'rgba(8,4,10,.45)' : 'rgba(20,10,6,.18)'; g.fillRect(0, 0, W, H);
-  } else {
+  } else if(SAIL){ sailBg(t); } else {
     put(g, St.stat, 0, 0);
     SMOKE.forEach((s, i) => { if(!RM) s.t += s.sp * .05; if(s.t > 1) s.t -= 1; const k = s.t, big = s.big >= 3 ? 1.6 : 1, r2 = (1.6 + k*10)*big, sx = s.sx + k*k*36 + Math.sin(k*6 + i)*2, sy = s.sy - k*80*big;
       const gr = g.createRadialGradient(sx, sy, 0, sx, sy, r2); const base = k < .25 ? mix(P.smokeLit, P.smoke, k*4) : P.smoke; gr.addColorStop(0, rgba(base, .46*(1 - k))); gr.addColorStop(1, rgba(base, 0)); g.fillStyle = gr; g.fillRect(sx - r2, sy - r2, r2*2, r2*2); });
@@ -1896,7 +1951,7 @@ function frame(ts){
     if(boom.t >= 0){ const k = (t - boom.t)/1.4; if(k > 1){ boom.t = -1; boom.next = t + 16 + Math.random()*24; } else { glow(g, boom.x, boom.y - 4, 10 + k*40, '#ffd08a', (1 - k)*.7); glow(g, boom.x, boom.y - 4, 4 + k*12, '#ffffff', (1 - k)*.8); if(k < .15){ g.fillStyle = `rgba(255,170,90,${.12*(1 - k/.15)})`; g.fillRect(0, 0, W, H); } } }
   }
   // embers rising, ash falling
-  if(!custom || true){ EMBERS.forEach((e, i) => { if(!RM) e.t += e.sp*.02; if(e.t > 1) e.t -= 1; const ex = e.f.x + e.dx*e.t + Math.sin(t*2 + i)*1.5, ey = e.f.y - e.t*70; if(Math.sin(t*12 + i) > -.2){ g.globalAlpha = (1 - e.t)*.9; disc(g, ex, ey, .35, '#ffb060'); g.globalAlpha = 1; } }); }
+  if(!SAIL){ EMBERS.forEach((e, i) => { if(!RM) e.t += e.sp*.02; if(e.t > 1) e.t -= 1; const ex = e.f.x + e.dx*e.t + Math.sin(t*2 + i)*1.5, ey = e.f.y - e.t*70; if(Math.sin(t*12 + i) > -.2){ g.globalAlpha = (1 - e.t)*.9; disc(g, ex, ey, .35, '#ffb060'); g.globalAlpha = 1; } }); }
   // pier & zombies when docked
   const docked = S && S.docked && !(S.phase === 'result' && S.anchor);
   const shipX = docked ? 50 : 62;
@@ -1909,7 +1964,7 @@ function frame(ts){
   }
   const night = tod === 'night';
   const ship = shipLayer(night);
-  const bob = RM ? 0 : Math.sin(t*1.3)*.8;
+  const bob = RM ? 0 : SAIL ? Math.sin(t*2.6)*1.3 + Math.sin(t*1.1)*.5 : Math.sin(t*1.3)*.8;
   const oy = SY + bob;
   if(night && S && S.up.search){ g.globalAlpha = .1; g.fillStyle = '#f0f0ff'; g.beginPath(); g.moveTo(shipX + 163*SS, oy + 2*SS); g.lineTo(W, oy - 34); g.lineTo(W, oy + 8); g.closePath(); g.fill(); g.globalAlpha = 1; }
   if(!RM){ for(let k = 0; k < 5; k++){ const kk = ((t*.22 + k*.2) % 1); g.globalAlpha = .45*(1 - kk); disc(g, shipX + 66*SS - kk*16, oy - kk*20, 1.2 + kk*4.5, '#141317'); } g.globalAlpha = 1; }
@@ -1939,7 +1994,15 @@ function frame(ts){
   g.globalAlpha = .62; g.fillStyle = P.water[0]; g.fillRect(0, SY + WL*SS + bob, W, H); g.globalAlpha = 1;
   for(let k = 0; k < 9; k++){ const wx4 = ((k*53 + (RM ? 0 : t*8)) % (W + 20)) - 10; g.globalAlpha = .35; rrect(g, wx4, SY + WL*SS + 4 + (k % 4)*6, 7 + (k % 3)*3, .5, .3, '#6a5a5a'); } g.globalAlpha = 1;
   g.globalAlpha = .45; g.fillStyle = '#b08070'; g.fillRect(shipX + 14*SS, SY + WL*SS + bob, 188*SS, .4); g.globalAlpha = 1;
-  if(!custom) put(g, St.fore, 0, 0);
+  if(SAIL){
+    // stern wake + bow spray
+    const wl = SY + WL*SS + bob, sv = .4 + SAIL.v*.6;
+    for(let i = 0; i < 26; i++){ const kk = ((t*.8*sv + i/26) % 1), wx5 = shipX + 16*SS - kk*170, spread = kk*12; g.globalAlpha = (1 - kk)*.85*sv; rrect(g, wx5 - 4, wl - .5 + spread*.15, 9 + kk*14, 1.3 - kk*.5, .5, '#f2ebe0'); g.globalAlpha = (1 - kk)*.5*sv; rrect(g, wx5 + 2, wl + 1.5 + spread, 6 + kk*10, .8, .3, '#d8cec2'); rrect(g, wx5 - 2, wl + 3 + spread*1.6, 5 + kk*8, .6, .3, '#c8beb2'); }
+    for(let i = 0; i < 40; i++){ const kk = ((t*.5 + i/40) % 1), fx5 = shipX + 20*SS + ((i*37) % 170)*SS*.95 - kk*30; g.globalAlpha = .45*sv*(1 - kk); rrect(g, fx5, wl - .2 + (i % 3)*.5, 2 + (i % 4), .6, .3, '#efe6da'); }
+    for(let i = 0; i < 10; i++){ const kk = ((t*1.7 + i/10) % 1), bx = shipX + 205*SS + kk*10, by = wl - 1 - Math.sin(kk*Math.PI)*5*sv; g.globalAlpha = (1 - kk)*.7*sv; disc(g, bx, by, .5 + kk*.6, '#f4ece2'); }
+    g.globalAlpha = 1;
+    put(g, SAIL.A.fore, SAIL.ox, 0); put(g, SAIL.B.fore, SAIL.ox + W - 90, 0);
+  } else if(!custom) put(g, St.fore, 0, 0);
   // dust
   ASH.forEach((a, i) => { if(!RM){ a.y += a.v; a.x += Math.sin(t + a.d)*.06; if(a.y > H){ a.y = -2; a.x = Math.random()*W; } } g.globalAlpha = .35 + .25*Math.sin(t*2 + a.d); g.fillStyle = P.dust; g.fillRect(a.x, a.y, .45, .45); }); g.globalAlpha = 1;
   if(wxo.rain){ g.strokeStyle = 'rgba(150,160,180,.45)'; g.lineWidth = .3; g.beginPath(); RAIN.forEach(d => { if(!RM){ d.y += d.v; d.x -= d.v*.35; if(d.y > H){ d.y = -4; d.x = Math.random()*W + 30; } } g.moveTo(d.x, d.y); g.lineTo(d.x - 1, d.y + 3.6); }); g.stroke();
